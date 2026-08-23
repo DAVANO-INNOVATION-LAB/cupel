@@ -87,6 +87,22 @@ type ArtifactScanPolicySpec struct {
 	// +kubebuilder:default=Enforce
 	// +optional
 	Enforcement string `json:"enforcement,omitempty"`
+	// EnvironmentPromotion controls what an empty promotion list means when a
+	// workload declares an environment.
+	//
+	// Require treats "promoted nowhere" as "not promoted here" and denies.
+	// Ignore skips the environment check entirely when nothing has been
+	// promoted, which is the behaviour for clusters that annotate an
+	// environment without using PromotionRequests at all.
+	//
+	// Require is the default because the alternative inverts the gate: a
+	// version promoted to dev is checked against prod and refused, while a
+	// version promoted nowhere — never reviewed by anyone — passes. The gate
+	// was weakest for exactly the artifacts with the least scrutiny.
+	// +kubebuilder:validation:Enum=Require;Ignore
+	// +kubebuilder:default=Require
+	// +optional
+	EnvironmentPromotion string `json:"environmentPromotion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

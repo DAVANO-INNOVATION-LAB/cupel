@@ -162,8 +162,9 @@ func (g *ModelGate) Handle(ctx context.Context, req admission.Request) admission
 	}
 
 	enforcement := g.enforcementFor(ctx, req.Namespace, annotations)
+	promotion := g.promotionModeFor(ctx, req.Namespace, annotations)
 
-	if decision := g.evaluate(report, ref); decision.deny {
+	if decision := g.evaluate(report, ref, promotion); decision.deny {
 		reason = decision.reason
 		switch enforcement {
 		case "Audit":
@@ -207,7 +208,7 @@ type decision struct {
 	reason string
 }
 
-func (g *ModelGate) evaluate(report *securityv1alpha1.ModelSecurityReport, ref ModelRef) decision {
+func (g *ModelGate) evaluate(report *securityv1alpha1.ModelSecurityReport, ref ModelRef, promotion string) decision {
 	switch report.Status.Verdict {
 	case securityv1alpha1.VerdictApproved:
 		// keep going: an approved model may still be unpromoted for this env
@@ -232,8 +233,27 @@ func (g *ModelGate) evaluate(report *securityv1alpha1.ModelSecurityReport, ref M
 			ref.Digest, report.Spec.Artifact.Digest)}
 	}
 
-	if ref.Environment != "" && len(report.Status.ApprovedEnvironments) > 0 {
-		if !contains(report.Status.ApprovedEnvironments, ref.Environment) {
+	// The environment gate, and the case that made it backwards.
+	//
+	// ApprovedEnvironments is written only by an approved PromotionRequest, so
+	// an empty list means "nobody has promoted this version anywhere". Guarding
+	// the check on len() > 0 therefore skipped it precisely when nothing had
+	// been approved: a version promoted to dev was refused prod, while a version
+	// promoted nowhere sailed through. The gate was weakest for the artifacts
+	// with the least scrutiny, which is the shape every fail-open takes.
+	//
+	// Ignore restores the old behaviour for clusters that annotate an
+	// environment without running promotions at all.
+	if ref.Environment != "" {
+		if len(report.Status.ApprovedEnvironments) == 0 {
+			if promotion != PromotionIgnore {
+				return decision{true, fmt.Sprintf(
+					"model %q version %q is not promoted to any environment, and this workload "+
+						"declares %q; approve a PromotionRequest, or set spec.environmentPromotion: "+
+						"Ignore on the policy if this cluster does not use promotions",
+					ref.Model, ref.Version, ref.Environment)}
+			}
+		} else if !contains(report.Status.ApprovedEnvironments, ref.Environment) {
 			return decision{true, fmt.Sprintf(
 				"model %q version %q is not promoted to %q (approved for: %s)",
 				ref.Model, ref.Version, ref.Environment,
@@ -307,4 +327,39 @@ func orUnknown(v string) string {
 		return "unknown"
 	}
 	return v
+}
+
+// Promotion modes for spec.environmentPromotion.
+const (
+	// PromotionRequire treats "promoted nowhere" as "not promoted here".
+	PromotionRequire = "Require"
+	// PromotionIgnore skips the environment check when nothing is promoted.
+	PromotionIgnore = "Ignore"
+)
+
+// promotionModeFor resolves the promotion mode from the named policy, the
+// namespace default policy, or the operator default.
+//
+// Defaults to Require. A policy that cannot be read yields the safe answer
+// rather than the permissive one — the reverse is how an unreachable API server
+// turns into an open gate.
+func (g *ModelGate) promotionModeFor(ctx context.Context, namespace string, annotations map[string]string) string {
+	name := annotations[AnnotationPolicy]
+	if name == "" {
+		name = g.DefaultPolicy
+	}
+	if name == "" {
+		return PromotionRequire
+	}
+	for _, ns := range g.lookupNamespaces(namespace) {
+		var pol securityv1alpha1.ArtifactScanPolicy
+		if err := g.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: ns}, &pol); err != nil {
+			continue
+		}
+		if pol.Spec.EnvironmentPromotion == PromotionIgnore {
+			return PromotionIgnore
+		}
+		return PromotionRequire
+	}
+	return PromotionRequire
 }
