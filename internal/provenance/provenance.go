@@ -1,4 +1,4 @@
-// Package provenance is a thin adapter over tessera-sigstore.
+// Package provenance is a thin adapter over the tessera/sigstore module.
 //
 // The verification moved into its own module because it never depended on
 // Kubernetes and because its dependency tree — sigstore-go, and transitively an
@@ -7,7 +7,7 @@
 package provenance
 
 import (
-	sigstore "github.com/DAVANO-INNOVATION-LAB/tessera-sigstore"
+	sigstore "github.com/DAVANO-INNOVATION-LAB/tessera/sigstore"
 )
 
 type (

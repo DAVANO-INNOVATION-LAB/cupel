@@ -1,4 +1,4 @@
-// Package resolver is a thin adapter over tessera-fetch.
+// Package resolver is a thin adapter over the tessera/fetch module.
 //
 // Staging an artifact moved into its own module because it never depended on
 // Kubernetes and because its dependency tree — an S3 client, an OCI registry
@@ -7,7 +7,7 @@
 package resolver
 
 import (
-	fetch "github.com/DAVANO-INNOVATION-LAB/tessera-fetch"
+	fetch "github.com/DAVANO-INNOVATION-LAB/tessera/fetch"
 )
 
 type (
@@ -29,6 +29,10 @@ type (
 	HuggingFaceResolver = fetch.HuggingFaceResolver
 	MLflowResolver      = fetch.MLflowResolver
 	HTTPResolver        = fetch.HTTPResolver
+	// KubeflowResolver reads a Kubeflow Model Registry entry and follows it to
+	// the backend holding the bytes. The same registry OpenShift AI ships, so
+	// one connector covers both.
+	KubeflowResolver = fetch.KubeflowResolver
 )
 
 // NewRegistry returns a registry with every built-in resolver registered.

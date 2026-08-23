@@ -3,9 +3,7 @@ module github.com/DAVANO-INNOVATION-LAB/assay
 go 1.25.8
 
 require (
-	github.com/DAVANO-INNOVATION-LAB/tessera v0.4.6
-	github.com/DAVANO-INNOVATION-LAB/tessera-fetch v0.1.0
-	github.com/DAVANO-INNOVATION-LAB/tessera-sigstore v0.1.1
+	github.com/DAVANO-INNOVATION-LAB/tessera v1.0.2
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/prometheus/client_golang v1.24.1
@@ -18,6 +16,8 @@ require (
 )
 
 require (
+	github.com/DAVANO-INNOVATION-LAB/tessera/fetch v1.0.1
+	github.com/DAVANO-INNOVATION-LAB/tessera/sigstore v1.0.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.43.7 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.18 // indirect
