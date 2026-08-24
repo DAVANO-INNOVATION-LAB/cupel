@@ -12,6 +12,19 @@ import (
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
 )
 
+// testScheme builds the scheme both helpers need.
+func testScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+	scheme := runtime.NewScheme()
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	if err := securityv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	return scheme
+}
+
 func testRecorder(t *testing.T) *Recorder {
 	t.Helper()
 	scheme := runtime.NewScheme()
@@ -179,5 +192,117 @@ func TestCheckpointRefusesToRegress(t *testing.T) {
 	err := r.checkpoint(ctx, nil)
 	if err == nil {
 		t.Fatal("the checkpoint must refuse to move backwards, or truncation becomes re-blessable")
+	}
+}
+
+// countingClient records how many List calls reach the API server.
+//
+// The point of the append rewrite is a cost, not a behaviour, and a cost is
+// only pinned by counting it. Everything else in this file would pass equally
+// well against the version that listed the whole chain on every write.
+type countingClient struct {
+	client.Client
+	lists int
+	gets  int
+}
+
+func (c *countingClient) List(ctx context.Context, l client.ObjectList, opts ...client.ListOption) error {
+	c.lists++
+	return c.Client.List(ctx, l, opts...)
+}
+
+func (c *countingClient) Get(ctx context.Context, key client.ObjectKey, o client.Object, opts ...client.GetOption) error {
+	c.gets++
+	return c.Client.Get(ctx, key, o, opts...)
+}
+
+// Appending to a long chain must not read the chain.
+//
+// This is the defect the rewrite closes: every append listed every AuditRecord
+// in the namespace and sorted them, from an uncached client in the scan pod. The
+// chain is append-only and nothing prunes it, so the cost of recording a
+// decision grew with the number of decisions ever recorded.
+func TestAppendDoesNotListTheWholeChain(t *testing.T) {
+	scheme := testScheme(t)
+	counting := &countingClient{Client: fake.NewClientBuilder().WithScheme(scheme).Build()}
+	r := &Recorder{Client: counting, Namespace: "assay-system"}
+
+	// Build a chain long enough that a listing would be obvious.
+	for i := 0; i < 25; i++ {
+		if _, err := r.Append(context.Background(), Record{
+			Type: "scan", Subject: "m/v1", Actor: "test",
+		}); err != nil {
+			t.Fatalf("append %d: %v", i, err)
+		}
+	}
+
+	// Only the first append may list, and only because no checkpoint exists
+	// yet. Every append after that has one to read.
+	if counting.lists > 1 {
+		t.Errorf("appending 25 records issued %d List calls; the chain should be "+
+			"read at most once, when there is no checkpoint to read instead", counting.lists)
+	}
+
+	// And the chain must still be correct: sequential, linked, verifiable.
+	records, cp, err := r.Chain(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 25 {
+		t.Fatalf("chain holds %d records, want 25", len(records))
+	}
+	if v := Verify(records, cp); !v.Valid {
+		t.Errorf("the chain no longer verifies after the rewrite: %+v", v)
+	}
+	for i, rec := range records {
+		if rec.Seq != uint64(i+1) {
+			t.Fatalf("record %d has seq %d; the chain is not sequential", i, rec.Seq)
+		}
+	}
+}
+
+// A checkpoint that has fallen behind must still yield the true head, or the
+// next record would link to the wrong predecessor and break the chain.
+func TestHeadCatchesUpFromAStaleCheckpoint(t *testing.T) {
+	scheme := testScheme(t)
+	r := &Recorder{
+		Client:    fake.NewClientBuilder().WithScheme(scheme).Build(),
+		Namespace: "assay-system",
+	}
+	ctx := context.Background()
+	for i := 0; i < 5; i++ {
+		if _, err := r.Append(ctx, Record{Type: "scan", Subject: "m/v1"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Roll the checkpoint back to record 2 and append again.
+	if err := r.putCheckpoint(ctx, Checkpoint{Length: 2, Head: "stale"}); err != nil {
+		// Regression is refused by design; write it directly instead.
+		var cp securityv1alpha1.AuditCheckpoint
+		if gerr := r.Client.Get(ctx, client.ObjectKey{
+			Name: CheckpointName, Namespace: r.Namespace}, &cp); gerr != nil {
+			t.Fatal(gerr)
+		}
+		cp.Spec.Length = 2
+		if uerr := r.Client.Update(ctx, &cp); uerr != nil {
+			t.Fatal(uerr)
+		}
+	}
+
+	sealed, err := r.Append(ctx, Record{Type: "scan", Subject: "m/v2"})
+	if err != nil {
+		t.Fatalf("append after a stale checkpoint: %v", err)
+	}
+	if sealed.Seq != 6 {
+		t.Errorf("new record has seq %d, want 6 — the walk did not catch up", sealed.Seq)
+	}
+
+	records, cp2, err := r.Chain(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := Verify(records, cp2); !v.Valid {
+		t.Errorf("chain broken after appending past a stale checkpoint: %+v", v)
 	}
 }

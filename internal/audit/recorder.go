@@ -33,16 +33,12 @@ func (r *Recorder) Append(ctx context.Context, event Record) (*Record, error) {
 	const attempts = 5
 	var lastErr error
 
-	for i := 0; i < attempts; i++ {
-		records, err := r.load(ctx)
-		if err != nil {
-			return nil, err
-		}
-		var prev *Record
-		if len(records) > 0 {
-			prev = &records[len(records)-1]
-		}
+	prev, err := r.head(ctx)
+	if err != nil {
+		return nil, err
+	}
 
+	for i := 0; i < attempts; i++ {
 		sealed := Seal(event, prev)
 		obj := &securityv1alpha1.AuditRecord{
 			ObjectMeta: metav1.ObjectMeta{
@@ -69,13 +65,25 @@ func (r *Recorder) Append(ctx context.Context, event Record) (*Record, error) {
 			// Advance the checkpoint. A failure here leaves a correct chain
 			// with a stale checkpoint, which is a detectable inconsistency
 			// rather than a silent gap, so it does not fail the append.
-			_ = r.checkpoint(ctx, append(records, sealed))
+			//
+			// The checkpoint also *is* the index: the next writer reads it to
+			// find the head instead of listing the chain, so keeping it current
+			// is what holds the append cost flat.
+			_ = r.writeCheckpoint(ctx, sealed)
 			return &sealed, nil
 		}
 		if !apierrors.IsAlreadyExists(err) {
 			return nil, fmt.Errorf("append audit record: %w", err)
 		}
+		// Another writer took this position. Read *that* record — one Get by a
+		// name we can compute — and build on it, rather than re-reading the
+		// whole chain to discover what we already know the shape of.
 		lastErr = err
+		taken, terr := r.recordAt(ctx, sealed.Seq)
+		if terr != nil {
+			return nil, fmt.Errorf("append audit record: lost the head and could not read it back: %w", terr)
+		}
+		prev = taken
 	}
 	return nil, fmt.Errorf("append audit record: lost %d races for the chain head: %w", attempts, lastErr)
 }
@@ -126,9 +134,13 @@ func (r *Recorder) Verify(ctx context.Context) (Verification, error) {
 	return Verify(records, cp), nil
 }
 
-// checkpoint publishes the new head.
+// checkpoint publishes the new head, given the whole chain.
 func (r *Recorder) checkpoint(ctx context.Context, records []Record) error {
-	cp := Head(records)
+	return r.putCheckpoint(ctx, Head(records))
+}
+
+// putCheckpoint publishes a head that has already been computed.
+func (r *Recorder) putCheckpoint(ctx context.Context, cp Checkpoint) error {
 	obj := &securityv1alpha1.AuditCheckpoint{
 		ObjectMeta: metav1.ObjectMeta{Name: CheckpointName, Namespace: r.Namespace},
 		Spec: securityv1alpha1.AuditCheckpointSpec{
@@ -271,4 +283,94 @@ func PromotionDecision(model, version, environment, phase, decidedBy, verdict, w
 			"reason":      why,
 		},
 	}
+}
+
+// head finds the last record in the chain without reading the chain.
+//
+// This is the difference between an append that costs one read and one that
+// costs the whole log. The old path listed every AuditRecord in the namespace on
+// every append, sorted them in memory, and took the last — from an uncached
+// client in the scan pod, so a cluster with fifty thousand audit records did a
+// fifty-thousand-object read every time a scan finished. The chain is
+// append-only and nothing prunes it, so that cost only ever grew.
+//
+// The checkpoint already stored what Seal needs: the sequence number of the head
+// and its hash. Reading it is one Get. Records written since the checkpoint are
+// found by walking forward from there — by name, since a record's name is a pure
+// function of its sequence number — which is normally a single miss.
+//
+// The full listing survives as the cold path for a chain that has no checkpoint
+// yet, which is a chain with almost nothing in it.
+func (r *Recorder) head(ctx context.Context) (*Record, error) {
+	var cp securityv1alpha1.AuditCheckpoint
+	err := r.Client.Get(ctx, client.ObjectKey{Name: CheckpointName, Namespace: r.Namespace}, &cp)
+	switch {
+	case apierrors.IsNotFound(err):
+		// No checkpoint: either an empty chain or one written before
+		// checkpointing existed. Fall back to reading it, once.
+		records, lerr := r.load(ctx)
+		if lerr != nil {
+			return nil, lerr
+		}
+		if len(records) == 0 {
+			return nil, nil
+		}
+		return &records[len(records)-1], nil
+	case err != nil:
+		return nil, fmt.Errorf("read audit checkpoint: %w", err)
+	}
+
+	prev, err := r.recordAt(ctx, uint64(cp.Spec.Length))
+	if err != nil {
+		return nil, err
+	}
+
+	// Walk forward over anything appended since the checkpoint was last
+	// written. Bounded so a checkpoint that has fallen badly behind degrades
+	// into a slow append rather than an unbounded scan.
+	const maxCatchUp = 1000
+	for i := 0; i < maxCatchUp; i++ {
+		next, err := r.recordAt(ctx, uint64(cp.Spec.Length)+uint64(i)+1)
+		if err != nil {
+			return nil, err
+		}
+		if next == nil {
+			break
+		}
+		prev = next
+	}
+	return prev, nil
+}
+
+// recordAt reads one record by sequence number, returning nil when there is
+// none. A record's name is derived from its sequence, so this needs no search.
+func (r *Recorder) recordAt(ctx context.Context, seq uint64) (*Record, error) {
+	if seq == 0 {
+		return nil, nil
+	}
+	var obj securityv1alpha1.AuditRecord
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Name: recordName(seq), Namespace: r.Namespace,
+	}, &obj)
+	switch {
+	case apierrors.IsNotFound(err):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("read audit record %d: %w", seq, err)
+	}
+	rec := fromAPI(obj)
+	return &rec, nil
+}
+
+// writeCheckpoint advances the published head to a single record.
+//
+// Takes the record rather than the whole chain: the checkpoint commits to the
+// head and the length, and both are readable from the record that just became
+// the head. Passing the chain was what forced the caller to hold it.
+func (r *Recorder) writeCheckpoint(ctx context.Context, head Record) error {
+	return r.putCheckpoint(ctx, Checkpoint{
+		Length: head.Seq,
+		Head:   head.Hash,
+		Time:   head.Time,
+	})
 }
