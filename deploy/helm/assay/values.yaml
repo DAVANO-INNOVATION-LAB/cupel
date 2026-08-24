@@ -111,17 +111,25 @@ webhook:
   # How the serving certificate is provisioned. This is the setting that
   # decides whether Assay can run on your cluster at all:
   #
-  #   openshift    - the service CA operator issues and rotates it, and injects
-  #                  the CA bundle. No extra dependency, OpenShift only.
   #   cert-manager - a Certificate/Issuer pair is created and the CA bundle is
   #                  injected by cert-manager's ca-injector. Requires
   #                  cert-manager with the CA injector enabled.
+  #   openshift    - the service CA operator issues and rotates it, and injects
+  #                  the CA bundle. No extra dependency, OpenShift only.
   #   external     - you provide the Secret and the caBundle yourself.
+  #
+  # The default is cert-manager because it is the one option that works on any
+  # conformant cluster. It was openshift, which meant `helm install` with no
+  # flags succeeded on exactly one vendor's distribution and, anywhere else,
+  # left the webhook pod waiting on a Secret that would never appear.
+  #
+  # On OpenShift, prefer --set webhook.certMode=openshift: the service CA
+  # operator is already present and needs no extra component.
   #
   # There is no self-signed fallback on purpose: a webhook whose certificate
   # cannot be verified is silently skipped under failurePolicy Ignore, which
   # looks exactly like a working gate.
-  certMode: openshift
+  certMode: cert-manager
 
   certSecretName: assay-webhook-server-cert
 

@@ -50,16 +50,15 @@ The operator installs from the chart. The one setting that depends on your
 cluster is how the admission webhook gets its serving certificate:
 
 ```bash
-# Most clusters: cert-manager issues and rotates it
-helm install assay deploy/helm/assay -n assay-system --create-namespace \
-  --set webhook.certMode=cert-manager
+# Default: cert-manager issues and rotates it. Works on any cluster.
+helm install assay deploy/helm/assay -n assay-system --create-namespace
 
-# OpenShift: the service CA operator does it, no extra dependency
+# OpenShift: the service CA operator does it, with no extra component
 helm install assay deploy/helm/assay -n assay-system --create-namespace \
   --set webhook.certMode=openshift
 
 # Or bring your own Secret and CA bundle
---set webhook.certMode=external
+--set webhook.certMode=external --set webhook.caBundle=...
 ```
 
 There is no self-signed fallback on purpose. A webhook whose certificate cannot
