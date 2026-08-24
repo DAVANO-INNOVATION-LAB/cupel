@@ -6,9 +6,14 @@
 
 **A model with a backdoor in it looks exactly like a model without one.**
 
-Assay is model supply-chain security for Kubernetes and OpenShift. It scans
-every version a model registry publishes, records a verdict, and refuses to let
-an unapproved model reach a running workload.
+Assay is model supply-chain security for Kubernetes. It scans every version a
+model registry publishes, records a verdict, and refuses to let an unapproved
+model reach a running workload.
+
+It runs on any conformant cluster — vanilla Kubernetes, EKS, GKE, AKS, kind,
+k3s, OpenShift — and uses no vendor-specific API objects. The command-line tool
+needs no cluster at all: it is a static Linux or macOS binary that scans a model
+wherever you have one.
 
 ## Assay and Tessera
 
@@ -32,23 +37,33 @@ Assay imports Tessera. Tessera does not know Assay exists.
 
 ## Install
 
-The CLI needs no cluster:
+The CLI is a single static binary and needs no cluster:
 
 ```bash
 go install github.com/DAVANO-INNOVATION-LAB/assay/cmd/assay@latest
 ```
 
-The operator installs from the chart in this repository:
+Prebuilt binaries for Linux and macOS, amd64 and arm64, are on the
+[releases page](https://github.com/DAVANO-INNOVATION-LAB/assay/releases).
+
+The operator installs from the chart. The one setting that depends on your
+cluster is how the admission webhook gets its serving certificate:
 
 ```bash
-helm install assay deploy/helm/assay --namespace assay-system --create-namespace
+# Most clusters: cert-manager issues and rotates it
+helm install assay deploy/helm/assay -n assay-system --create-namespace \
+  --set webhook.certMode=cert-manager
+
+# OpenShift: the service CA operator does it, no extra dependency
+helm install assay deploy/helm/assay -n assay-system --create-namespace \
+  --set webhook.certMode=openshift
+
+# Or bring your own Secret and CA bundle
+--set webhook.certMode=external
 ```
 
-Or with kustomize, if you would rather read the manifests first:
-
-```bash
-kubectl apply -k config/default
-```
+There is no self-signed fallback on purpose. A webhook whose certificate cannot
+be verified is silently skipped, which looks exactly like a working gate.
 
 ## Use
 
@@ -84,10 +99,10 @@ Point Assay at a model registry and it does the rest:
 apiVersion: security.davano.io/v1alpha1
 kind: ModelRegistryConnector
 metadata:
-  name: openshift-ai
+  name: model-registry
   namespace: assay-system
 spec:
-  endpoint: https://model-registry.apps.example.com
+  endpoint: https://model-registry.example.com
   pollInterval: 5m
 ```
 
@@ -106,7 +121,7 @@ declares an environment the version was never promoted to.
 | | |
 |---|---|
 | Formats | GGUF, safetensors, ONNX, pickle, PyTorch, Keras, SavedModel, NumPy, archives |
-| Sources | Hugging Face, S3 and compatible, OCI and ModelCar, PVC, MLflow, Kubeflow |
+| Sources | Hugging Face, S3 and compatible, OCI and ModelCar, PVC, MLflow, Kubeflow and Red Hat OpenShift AI model registries |
 | Scanners | model inspection, plus ClamAV, Trivy, Grype, Syft and TruffleHog as Jobs |
 | Frameworks | NIST AI RMF 1.0, NIST SP 800-53r5, MITRE ATLAS 2026.07 |
 | Signing | Sigstore verification against declared trusted publishers |
