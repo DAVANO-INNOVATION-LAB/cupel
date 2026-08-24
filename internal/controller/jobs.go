@@ -110,16 +110,25 @@ func buildScanJob(scan *securityv1alpha1.ArtifactScan, def scanners.Definition, 
 	args = substitutePaths(args)
 	command = substitutePaths(command)
 
+	// Sized for what a sampled fetch actually stages, not for a whole model.
+	//
+	// The resolvers read header-inspectable formats by range — a safetensors
+	// header is kilobytes, whatever the tensor data behind it weighs — and pull
+	// whole only the small files that can execute code. Reserving fifty
+	// gigabytes for that was sizing the workspace for a download that no longer
+	// happens, and it made every scan pod look enormous to a node.
+	//
+	// Still generous: a pickle is read in full and real ones run to gigabytes.
 	workspaceSize := cfg.WorkspaceSize
 	if workspaceSize.IsZero() {
-		workspaceSize = resource.MustParse("50Gi")
+		workspaceSize = resource.MustParse("12Gi")
 	}
 
 	// Bounded so a scanner that streams an artifact into /tmp cannot fill the
 	// node's ephemeral storage.
 	tmpSize := cfg.TmpSize
 	if tmpSize.IsZero() {
-		tmpSize = resource.MustParse("8Gi")
+		tmpSize = resource.MustParse("4Gi")
 	}
 
 	volumes := []corev1.Volume{
@@ -295,6 +304,11 @@ func buildScanJob(scan *securityv1alpha1.ArtifactScan, def scanners.Definition, 
 		Requests: corev1.ResourceList{
 			corev1.ResourceCPU:    resource.MustParse("200m"),
 			corev1.ResourceMemory: resource.MustParse("512Mi"),
+			// The scanner is where the staged workspace actually sits, so it
+			// declares the same disk the fetch reserved. Init containers are
+			// scheduled on the maximum rather than the sum, so this does not
+			// double-count.
+			corev1.ResourceEphemeralStorage: workspaceSize,
 		},
 		Limits: corev1.ResourceList{
 			corev1.ResourceCPU:    resource.MustParse("2"),
@@ -367,6 +381,13 @@ func buildScanJob(scan *securityv1alpha1.ArtifactScan, def scanners.Definition, 
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("200m"),
 									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									// Without this the scheduler is blind to disk:
+									// emptyDir sizeLimit caps usage but reserves
+									// nothing, so several scan pods can land on a
+									// node that cannot hold them and the failure
+									// arrives as eviction rather than as a
+									// placement decision.
+									corev1.ResourceEphemeralStorage: workspaceSize,
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("2"),
