@@ -11,10 +11,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/metrics"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/modelsource"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/registry"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/metrics"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/modelsource"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/registry"
 )
 
 // Trigger values recorded on a scan. They are what makes a verdict readable
@@ -157,7 +157,7 @@ func (r *ModelRegistryConnectorReconciler) syncSource(
 	// Push finished verdicts back to the source. This is what makes the
 	// result visible to the people who registered the model, rather than only
 	// to whoever reads Kubernetes — and dropping it when the sync was
-	// rewritten would have silently turned Assay into a system that scans and
+	// rewritten would have silently turned Cupel into a system that scans and
 	// tells nobody.
 	if connector.Spec.WriteBack == nil || *connector.Spec.WriteBack {
 		for _, v := range list {

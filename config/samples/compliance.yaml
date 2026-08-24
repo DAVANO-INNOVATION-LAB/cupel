@@ -1,7 +1,7 @@
 ---
 # Assess every model in the namespace against NIST AI RMF 1.0.
 #
-# Assay can produce technical evidence for a minority of the framework's 72
+# Cupel can produce technical evidence for a minority of the framework's 72
 # subcategories. The rest are organizational — that staff are trained, that a
 # diverse team reviewed a decision, that leadership accepted a risk — and no
 # scanner can observe them. They are closed here, by named people, or they
@@ -10,7 +10,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ComplianceProfile
 metadata:
   name: ai-rmf-baseline
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   framework: nist-ai-rmf-1.0
 
@@ -46,7 +46,7 @@ spec:
       attestedAt: "2026-05-20T00:00:00Z"
       expiresAt: "2027-05-20T00:00:00Z"
 
-    # Partial controls need both halves. Assay evidences the artifact side of
+    # Partial controls need both halves. Cupel evidences the artifact side of
     # privacy by finding embedded credentials; training-data privacy is a
     # judgement only the privacy office can make.
     - controlID: "MEASURE 2.10"
@@ -57,7 +57,7 @@ spec:
       attestedAt: "2026-07-10T00:00:00Z"
       expiresAt: "2027-01-10T00:00:00Z"
 
-    # MEASURE 2.11 is deliberately NOT attested here. Assay has no bias
+    # MEASURE 2.11 is deliberately NOT attested here. Cupel has no bias
     # evaluation until Phase 2, so the control stays open and visible rather
     # than being quietly inferred from a clean security scan.
 
@@ -73,7 +73,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ComplianceProfile
 metadata:
   name: ai-rmf-fraud-detection
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   framework: nist-ai-rmf-1.0
   modelSelector:

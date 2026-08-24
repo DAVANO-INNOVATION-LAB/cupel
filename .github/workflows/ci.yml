@@ -110,7 +110,7 @@ jobs:
           pickle.dump(E(), open('/tmp/evil/weights.pkl','wb'))
           "
           set +e
-          ./bin/assay inspect /tmp/evil
+          ./bin/cupel inspect /tmp/evil
           code=$?
           set -e
           test "$code" = "3" || { echo "expected exit 3, got $code"; exit 1; }
@@ -123,11 +123,11 @@ jobs:
           h = json.dumps({'__metadata__': {'format': 'pt'}}).encode()
           open('/tmp/clean/model.safetensors','wb').write(struct.pack('<Q', len(h)) + h)
           "
-          ./bin/assay inspect /tmp/clean
+          ./bin/cupel inspect /tmp/clean
 
       - name: JSON output is parseable and carries a verdict
         run: |
-          ./bin/assay inspect --json /tmp/evil > /tmp/report.json || true
+          ./bin/cupel inspect --json /tmp/evil > /tmp/report.json || true
           python3 -c "
           import json, sys
           r = json.load(open('/tmp/report.json'))
@@ -155,7 +155,7 @@ jobs:
       - name: Chart is in sync with generated manifests
         run: |
           make helm-sync
-          git diff --exit-code deploy/helm/assay/crds deploy/helm/assay/rbac-rules.yaml
+          git diff --exit-code deploy/helm/cupel/crds deploy/helm/cupel/rbac-rules.yaml
 
       - name: Lint and render the chart in every cert mode
         run: make helm-lint
@@ -183,9 +183,9 @@ jobs:
               -kubernetes-version 1.29.0 -
           }
           echo "== helm: openshift cert mode"
-          helm template assay deploy/helm/assay --namespace assay-system | validate
+          helm template cupel deploy/helm/cupel --namespace cupel-system | validate
           echo "== helm: cert-manager, monitoring, extra scan namespaces"
-          helm template assay deploy/helm/assay --namespace assay-system \
+          helm template cupel deploy/helm/cupel --namespace cupel-system \
             --set webhook.certMode=cert-manager \
             --set metrics.serviceMonitor.enabled=true \
             --set metrics.prometheusRule.enabled=true \

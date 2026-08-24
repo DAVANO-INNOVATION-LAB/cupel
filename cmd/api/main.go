@@ -1,4 +1,4 @@
-// Command assay-api serves the console and the authenticated API.
+// Command cupel-api serves the console and the authenticated API.
 //
 // It is a separate process from the operator on purpose. The operator holds
 // broad cluster credentials because it has to create Jobs and write status
@@ -27,10 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/api"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/authz"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/console"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/api"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/console"
 )
 
 func main() {
@@ -52,17 +52,17 @@ func main() {
 	)
 
 	flag.StringVar(&addr, "listen", ":8443", "address to serve on")
-	flag.StringVar(&namespace, "namespace", envOr("POD_NAMESPACE", "assay-system"),
+	flag.StringVar(&namespace, "namespace", envOr("POD_NAMESPACE", "cupel-system"),
 		"namespace scans and exceptions are created in")
 	flag.StringVar(&bindingsPath, "bindings", "/config/bindings.yaml",
 		"role bindings mapping identity-provider groups to roles and tenants")
-	flag.StringVar(&issuerURL, "oidc-issuer-url", os.Getenv("ASSAY_OIDC_ISSUER"),
+	flag.StringVar(&issuerURL, "oidc-issuer-url", os.Getenv("CUPEL_OIDC_ISSUER"),
 		"OIDC issuer; required, there is no anonymous mode")
-	flag.StringVar(&clientID, "oidc-client-id", os.Getenv("ASSAY_OIDC_CLIENT_ID"), "OIDC client ID")
-	flag.StringVar(&clientSecret, "oidc-client-secret", os.Getenv("ASSAY_OIDC_CLIENT_SECRET"),
+	flag.StringVar(&clientID, "oidc-client-id", os.Getenv("CUPEL_OIDC_CLIENT_ID"), "OIDC client ID")
+	flag.StringVar(&clientSecret, "oidc-client-secret", os.Getenv("CUPEL_OIDC_CLIENT_SECRET"),
 		"OIDC client secret; prefer the environment over a flag so it stays out of the process list")
-	flag.StringVar(&redirectURL, "oidc-redirect-url", os.Getenv("ASSAY_OIDC_REDIRECT_URL"),
-		"OAuth2 callback URL, e.g. https://assay.example/auth/callback")
+	flag.StringVar(&redirectURL, "oidc-redirect-url", os.Getenv("CUPEL_OIDC_REDIRECT_URL"),
+		"OAuth2 callback URL, e.g. https://cupel.example/auth/callback")
 	flag.StringVar(&groupsClaim, "oidc-groups-claim", "groups", "claim holding group membership")
 	flag.StringVar(&scopes, "oidc-scopes", "groups",
 		"comma-separated scopes requested beyond openid/profile/email. Without a scope that "+
@@ -79,7 +79,7 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-	logger := ctrl.Log.WithName("assay-api")
+	logger := ctrl.Log.WithName("cupel-api")
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -111,7 +111,7 @@ type config struct {
 }
 
 func run(ctx context.Context, cfg config) error {
-	logger := ctrl.Log.WithName("assay-api")
+	logger := ctrl.Log.WithName("cupel-api")
 
 	scheme := runtime.NewScheme()
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {

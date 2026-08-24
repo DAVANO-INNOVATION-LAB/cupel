@@ -4,7 +4,7 @@ A single self-contained page. It talks to the cluster API, so what it shows is
 whatever the CRDs currently say — there is no separate database to fall out of
 step.
 
-**How it is served.** `assay-api` authenticates every request and returns only
+**How it is served.** `cupel-api` authenticates every request and returns only
 what the signed-in subject may see. Findings a role may not have are removed
 before the response is serialized — not hidden with CSS — so anything the page
 can display, it was already allowed to have.
@@ -15,10 +15,10 @@ the port is worse than no console, and a permissive default for bindings would
 hand every finding to every authenticated user.
 
 ```bash
-assay-api \
+cupel-api \
   --oidc-issuer-url https://sso.example.com \
-  --oidc-client-id assay \
-  --oidc-redirect-url https://assay.example/auth/callback \
+  --oidc-client-id cupel \
+  --oidc-redirect-url https://cupel.example/auth/callback \
   --bindings /config/bindings.yaml \
   --tls-cert-file /tls/tls.crt --tls-private-key-file /tls/tls.key
 ```
@@ -118,7 +118,7 @@ which means there is nothing to download and nothing to keep in step: the binary
 you copy out is the one that ran your scans.
 
 ```bash
-assay inspect hf://openai-community/gpt2
+cupel inspect hf://openai-community/gpt2
 ```
 
 Exit codes are made for CI: `0` approved, `2` review required, `3` quarantined,

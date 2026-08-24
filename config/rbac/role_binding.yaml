@@ -2,24 +2,24 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: assay-manager-rolebinding
+  name: cupel-manager-rolebinding
   labels:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: assay-manager-role
+  name: cupel-manager-role
 subjects:
   - kind: ServiceAccount
-    name: assay-controller-manager
-    namespace: assay-system
+    name: cupel-controller-manager
+    namespace: cupel-system
 ---
 # Leader election for the manager's active replica.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: assay-leader-election-role
-  namespace: assay-system
+  name: cupel-leader-election-role
+  namespace: cupel-system
 rules:
   - apiGroups: [""]
     resources: ["configmaps"]
@@ -34,13 +34,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: assay-leader-election-rolebinding
-  namespace: assay-system
+  name: cupel-leader-election-rolebinding
+  namespace: cupel-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: assay-leader-election-role
+  name: cupel-leader-election-role
 subjects:
   - kind: ServiceAccount
-    name: assay-controller-manager
-    namespace: assay-system
+    name: cupel-controller-manager
+    namespace: cupel-system

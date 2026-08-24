@@ -15,7 +15,7 @@ type ControlResult struct {
 	// Status of the control.
 	// +kubebuilder:validation:Enum=Satisfied;PartiallySatisfied;NotSatisfied;Attested;AttestationRequired;NotApplicable
 	Status string `json:"status"`
-	// Automation records how much of this control Assay can evidence at all:
+	// Automation records how much of this control Cupel can evidence at all:
 	// Full, Partial, or None. A control marked None is never satisfied by a
 	// scan — only by an attestation.
 	// +kubebuilder:validation:Enum=Full;Partial;None
@@ -24,7 +24,7 @@ type ControlResult struct {
 	// Reason explains the status in terms an auditor can follow.
 	// +optional
 	Reason string `json:"reason,omitempty"`
-	// Evidence lists the Assay signals observed for this control.
+	// Evidence lists the Cupel signals observed for this control.
 	// +optional
 	Evidence []string `json:"evidence,omitempty"`
 	// AttestedBy names who closed the control, when an attestation applied.
@@ -77,7 +77,7 @@ type ComplianceReportStatus struct {
 	// Automatable records how much of the framework any scanner could
 	// evidence, independent of this particular model. It is reported so the
 	// conformance numbers are read in context rather than as a claim that
-	// Assay assessed the whole framework.
+	// Cupel assessed the whole framework.
 	// +optional
 	AutomatableFull int32 `json:"automatableFull,omitempty"`
 	// +optional

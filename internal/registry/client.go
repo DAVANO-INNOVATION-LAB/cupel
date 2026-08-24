@@ -1,5 +1,5 @@
 // Package registry is a client for the OpenShift AI (Kubeflow) Model Registry
-// REST API. Assay uses it as the primary integration point: it discovers
+// REST API. Cupel uses it as the primary integration point: it discovers
 // registered models and versions, resolves artifact locations, and writes
 // security summaries back as custom properties.
 package registry
@@ -262,7 +262,7 @@ func (c *Client) GetModelVersion(ctx context.Context, versionID string) (*ModelV
 }
 
 // PatchModelVersionProperties merges custom properties into a model version.
-// Assay writes only summary security metadata here; detailed findings stay in
+// Cupel writes only summary security metadata here; detailed findings stay in
 // ArtifactScanReport resources inside the cluster.
 func (c *Client) PatchModelVersionProperties(ctx context.Context, versionID string, props map[string]MetadataValue) error {
 	body := map[string]any{"customProperties": props}

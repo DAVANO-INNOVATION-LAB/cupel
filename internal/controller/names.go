@@ -4,7 +4,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/naming"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
 )
 
 // setCondition upserts a status condition, filling in the transition time.

@@ -18,7 +18,7 @@ func TestNIST80053CatalogLoads(t *testing.T) {
 	}
 }
 
-// The distinction this whole file rests on: Assay contributes evidence toward
+// The distinction this whole file rests on: Cupel contributes evidence toward
 // a control. It does not satisfy one. If a control claims Full automation it
 // must at least name the evidence that backs the claim.
 func TestEveryClaimNamesItsEvidence(t *testing.T) {
@@ -39,7 +39,7 @@ func TestEveryClaimNamesItsEvidence(t *testing.T) {
 	}
 }
 
-// Controls Assay cannot speak to are in the catalogue on purpose. Dropping
+// Controls Cupel cannot speak to are in the catalogue on purpose. Dropping
 // them would turn a subset into something that reads like full coverage.
 func TestGapsAreRecordedRatherThanOmitted(t *testing.T) {
 	c := NIST80053()
@@ -53,14 +53,14 @@ func TestGapsAreRecordedRatherThanOmitted(t *testing.T) {
 		t.Fatal("a mapping with nothing marked unobservable is not an honest subset")
 	}
 
-	// SA-11 asks whether the model's *developer* tested it. Assay assesses an
+	// SA-11 asks whether the model's *developer* tested it. Cupel assesses an
 	// artifact it is handed and cannot know.
 	sa11, err := c.Get("SA-11")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if sa11.Automation != AutomationNone {
-		t.Error("SA-11 concerns the developer's testing, which Assay cannot observe")
+		t.Error("SA-11 concerns the developer's testing, which Cupel cannot observe")
 	}
 }
 

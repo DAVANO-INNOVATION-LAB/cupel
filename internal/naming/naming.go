@@ -2,7 +2,7 @@
 //
 // Model and version names come from the Model Registry, so they are
 // arbitrary: long, uppercase, and full of characters Kubernetes rejects.
-// Every Assay object name is derived here so the operator and the in-pod
+// Every Cupel object name is derived here so the operator and the in-pod
 // runner always agree on what a given object is called.
 package naming
 

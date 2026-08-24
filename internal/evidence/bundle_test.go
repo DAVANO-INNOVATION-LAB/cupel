@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
 )
 
 func sampleInput() Input {
@@ -25,7 +25,7 @@ func sampleInput() Input {
 
 	return Input{
 		Now:      base,
-		Producer: "assay 0.1.0",
+		Producer: "cupel 0.1.0",
 		Subject: Subject{
 			Model: "fraud", Version: "v3",
 			ArtifactURI: "s3://models/fraud/v3", ArtifactDigest: "sha256:abc",

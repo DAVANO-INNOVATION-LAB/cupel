@@ -7,9 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/policy"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
 )
 
 // The audit package and its CRDs existed for a while with nothing writing to
@@ -18,10 +18,10 @@ import (
 func TestVerdictIsRecordedInTheAuditChain(t *testing.T) {
 	scheme := digestTestScheme(t)
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	r := &ArtifactScanReconciler{Client: c, Scheme: scheme, AuditNamespace: "assay-system"}
+	r := &ArtifactScanReconciler{Client: c, Scheme: scheme, AuditNamespace: "cupel-system"}
 
 	scan := &securityv1alpha1.ArtifactScan{
-		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "cupel-system"},
 		Spec: securityv1alpha1.ArtifactScanSpec{
 			ModelName: "fraud", ModelVersion: "v3",
 			Trigger: "Registry", TriggeredBy: "mlflow/local",
@@ -30,7 +30,7 @@ func TestVerdictIsRecordedInTheAuditChain(t *testing.T) {
 	}
 	r.recordVerdict(context.Background(), scan, policy.Evaluation{Verdict: "Quarantined", RiskScore: 87})
 
-	rec := &audit.Recorder{Client: c, Namespace: "assay-system"}
+	rec := &audit.Recorder{Client: c, Namespace: "cupel-system"}
 	records, _, err := rec.Chain(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func TestRecordingDisabledDoesNotBreakTheScan(t *testing.T) {
 	r := &ArtifactScanReconciler{Client: c, Scheme: scheme} // no AuditNamespace
 
 	scan := &securityv1alpha1.ArtifactScan{
-		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "cupel-system"},
 		Spec:       securityv1alpha1.ArtifactScanSpec{ModelName: "m", ModelVersion: "1"},
 	}
 	// Must not panic and must not write anything.
@@ -91,18 +91,18 @@ func TestRecordingDisabledDoesNotBreakTheScan(t *testing.T) {
 func TestSuccessiveVerdictsChain(t *testing.T) {
 	scheme := digestTestScheme(t)
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	r := &ArtifactScanReconciler{Client: c, Scheme: scheme, AuditNamespace: "assay-system"}
+	r := &ArtifactScanReconciler{Client: c, Scheme: scheme, AuditNamespace: "cupel-system"}
 	ctx := context.Background()
 
 	for i, verdict := range []string{"ReviewRequired", "Approved", "Quarantined"} {
 		scan := &securityv1alpha1.ArtifactScan{
-			ObjectMeta: metav1.ObjectMeta{Name: "s", Namespace: "assay-system"},
+			ObjectMeta: metav1.ObjectMeta{Name: "s", Namespace: "cupel-system"},
 			Spec:       securityv1alpha1.ArtifactScanSpec{ModelName: "m", ModelVersion: "1"},
 		}
 		r.recordVerdict(ctx, scan, policy.Evaluation{Verdict: verdict, RiskScore: int32(i)})
 	}
 
-	rec := &audit.Recorder{Client: c, Namespace: "assay-system"}
+	rec := &audit.Recorder{Client: c, Namespace: "cupel-system"}
 	records, cp, err := rec.Chain(ctx)
 	if err != nil {
 		t.Fatal(err)

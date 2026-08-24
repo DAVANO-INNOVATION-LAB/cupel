@@ -5,7 +5,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ArtifactScanPolicy
 metadata:
   name: production-baseline
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   enforcement: Enforce
   scanners:
@@ -40,7 +40,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ArtifactScanPolicy
 metadata:
   name: development-audit
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   enforcement: Audit
   scanners:

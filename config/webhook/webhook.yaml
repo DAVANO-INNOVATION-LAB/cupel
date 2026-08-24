@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: assay-webhook-service
-  namespace: assay-system
+  name: cupel-webhook-service
+  namespace: cupel-system
   annotations:
     # OpenShift's service CA operator issues and rotates the serving cert.
     # This avoids shipping cert-manager as a hard dependency.
-    service.beta.openshift.io/serving-cert-secret-name: assay-webhook-server-cert
+    service.beta.openshift.io/serving-cert-secret-name: cupel-webhook-server-cert
 spec:
   selector:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
     app.kubernetes.io/component: controller
   ports:
     - port: 443
@@ -21,7 +21,7 @@ spec:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: assay-model-deployment-gate
+  name: cupel-model-deployment-gate
   annotations:
     # Injects the service CA bundle so the API server trusts the webhook.
     service.beta.openshift.io/inject-cabundle: "true"
@@ -29,19 +29,19 @@ webhooks:
   - name: models.security.davano.io
     admissionReviewVersions: ["v1"]
     sideEffects: None
-    # Ignore keeps a Assay outage from blocking all model deployments. Switch
+    # Ignore keeps a Cupel outage from blocking all model deployments. Switch
     # to Fail once the operator is proven stable in the cluster, since Ignore
-    # means an attacker who can disrupt Assay can also bypass the gate.
+    # means an attacker who can disrupt Cupel can also bypass the gate.
     failurePolicy: Ignore
     timeoutSeconds: 10
     clientConfig:
       service:
-        name: assay-webhook-service
-        namespace: assay-system
+        name: cupel-webhook-service
+        namespace: cupel-system
         path: /validate-model-deployment
         port: 443
     namespaceSelector:
-      # Only namespaces that opt in are gated, and Assay never gates itself or
+      # Only namespaces that opt in are gated, and Cupel never gates itself or
       # the control plane.
       matchExpressions:
         - key: security.davano.io/enforce
@@ -75,7 +75,7 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: assay-exception-signer
+  name: cupel-exception-signer
   annotations:
     service.beta.openshift.io/inject-cabundle: "true"
 webhooks:
@@ -86,8 +86,8 @@ webhooks:
     timeoutSeconds: 10
     clientConfig:
       service:
-        name: assay-webhook-service
-        namespace: assay-system
+        name: cupel-webhook-service
+        namespace: cupel-system
         path: /sign-exception
         port: 443
     rules:
@@ -107,7 +107,7 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: assay-promotion-signer
+  name: cupel-promotion-signer
   annotations:
     service.beta.openshift.io/inject-cabundle: "true"
 webhooks:
@@ -118,8 +118,8 @@ webhooks:
     timeoutSeconds: 10
     clientConfig:
       service:
-        name: assay-webhook-service
-        namespace: assay-system
+        name: cupel-webhook-service
+        namespace: cupel-system
         path: /sign-promotion
         port: 443
     rules:

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 )
 
 func approvedReport(envs ...string) *securityv1alpha1.ModelSecurityReport {

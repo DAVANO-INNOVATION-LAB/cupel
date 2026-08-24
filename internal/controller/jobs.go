@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/scanners"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 // Paths inside the scan pod.
@@ -36,7 +36,7 @@ func pvcClaimOf(uri string) (string, bool) {
 	return claim, true
 }
 
-// Labels Assay puts on scan Jobs so the controller can find them again.
+// Labels Cupel puts on scan Jobs so the controller can find them again.
 const (
 	LabelScan      = "security.davano.io/scan"
 	LabelScanner   = "security.davano.io/scanner"
@@ -44,7 +44,7 @@ const (
 	// LabelTrigger records why a scan exists, so the console and kubectl can
 	// filter on it without parsing the spec.
 	LabelTrigger = "security.davano.io/trigger"
-	ManagerName  = "assay-operator"
+	ManagerName  = "cupel-operator"
 
 	// AnnotationArtifactDigest carries the digest the fetch step measured,
 	// from the scan report the publish step writes back up to the model
@@ -54,8 +54,8 @@ const (
 
 // JobConfig holds the cluster-level settings the orchestrator needs.
 type JobConfig struct {
-	// OperatorImage is the Assay image, used for the fetch and publish steps
-	// and for scanners implemented by the Assay runner.
+	// OperatorImage is the Cupel image, used for the fetch and publish steps
+	// and for scanners implemented by the Cupel runner.
 	OperatorImage string
 	// ScannerRegistry is the host and namespace holding the scanner images.
 	// Air-gapped clusters set this to their mirror. Empty uses the default.
@@ -353,7 +353,7 @@ func buildScanJob(scan *securityv1alpha1.ArtifactScan, def scanners.Definition, 
 						{
 							Name:    "fetch",
 							Image:   cfg.OperatorImage,
-							Command: []string{"/assay-runner"},
+							Command: []string{"/cupel-runner"},
 							Args: []string{
 								"fetch",
 								"--uri", scan.Spec.Artifact.URI,
@@ -388,7 +388,7 @@ func buildScanJob(scan *securityv1alpha1.ArtifactScan, def scanners.Definition, 
 						{
 							Name:    "publish",
 							Image:   cfg.OperatorImage,
-							Command: []string{"/assay-runner"},
+							Command: []string{"/cupel-runner"},
 							Args: []string{
 								"publish",
 								"--scan", scan.Name,

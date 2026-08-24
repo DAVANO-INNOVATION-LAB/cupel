@@ -12,7 +12,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/authz"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
 )
 
 // OIDCConfig configures login against any standards-compliant provider —
@@ -71,7 +71,7 @@ func newAuthenticator(ctx context.Context, cfg OIDCConfig) (*authenticator, erro
 	}, nil
 }
 
-const stateCookie = "assay_oidc_state"
+const stateCookie = "cupel_oidc_state"
 
 // login starts the authorization code flow. The state parameter is random per
 // attempt and echoed in a cookie, so a callback that did not originate here is

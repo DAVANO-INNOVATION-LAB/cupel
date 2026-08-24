@@ -32,7 +32,7 @@ import (
 type Role string
 
 const (
-	// RoleAdmin administers Assay itself: every tenant, every detail, and
+	// RoleAdmin administers Cupel itself: every tenant, every detail, and
 	// configuration. Intended to be rare.
 	RoleAdmin Role = "admin"
 

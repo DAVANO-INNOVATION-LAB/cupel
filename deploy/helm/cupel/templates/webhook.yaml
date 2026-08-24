@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "assay.webhookServiceName" . }}
+  name: {{ include "cupel.webhookServiceName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
   {{- if eq .Values.webhook.certMode "openshift" }}
   annotations:
     # OpenShift's service CA operator issues and rotates the serving cert,
@@ -14,7 +14,7 @@ metadata:
   {{- end }}
 spec:
   selector:
-    {{- include "assay.selectorLabels" . | nindent 4 }}
+    {{- include "cupel.selectorLabels" . | nindent 4 }}
   ports:
     - name: webhook
       port: 443
@@ -27,10 +27,10 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: {{ include "assay.fullname" . }}-selfsign
+  name: {{ include "cupel.fullname" . }}-selfsign
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
 spec:
   selfSigned: {}
 ---
@@ -38,23 +38,23 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "assay.fullname" . }}-webhook
+  name: {{ include "cupel.fullname" . }}-webhook
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
 spec:
   secretName: {{ .Values.webhook.certSecretName }}
   duration: {{ .Values.webhook.certManager.duration }}
   renewBefore: {{ .Values.webhook.certManager.renewBefore }}
   dnsNames:
-    - {{ include "assay.webhookServiceName" . }}.{{ .Release.Namespace }}.svc
-    - {{ include "assay.webhookServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+    - {{ include "cupel.webhookServiceName" . }}.{{ .Release.Namespace }}.svc
+    - {{ include "cupel.webhookServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
   issuerRef:
     {{- if .Values.webhook.certManager.issuerRef }}
     {{- toYaml .Values.webhook.certManager.issuerRef | nindent 4 }}
     {{- else }}
     kind: Issuer
-    name: {{ include "assay.fullname" . }}-selfsign
+    name: {{ include "cupel.fullname" . }}-selfsign
     {{- end }}
 {{- end }}
 ---
@@ -62,16 +62,16 @@ spec:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: assay-model-deployment-gate
+  name: cupel-model-deployment-gate
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
   annotations:
     {{- if eq .Values.webhook.certMode "openshift" }}
     # Injects the service CA bundle so the API server trusts the webhook.
     service.beta.openshift.io/inject-cabundle: "true"
     {{- else if eq .Values.webhook.certMode "cert-manager" }}
     # cert-manager's CA injector fills in caBundle from the Certificate.
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "assay.fullname" . }}-webhook
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "cupel.fullname" . }}-webhook
     {{- end }}
 webhooks:
   - name: models.security.davano.io
@@ -81,7 +81,7 @@ webhooks:
     timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
     clientConfig:
       service:
-        name: {{ include "assay.webhookServiceName" . }}
+        name: {{ include "cupel.webhookServiceName" . }}
         namespace: {{ .Release.Namespace }}
         path: /validate-model-deployment
         port: 443
@@ -119,14 +119,14 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: {{ include "assay.fullname" . }}-signers
+  name: {{ include "cupel.fullname" . }}-signers
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
   annotations:
     {{- if eq .Values.webhook.certMode "openshift" }}
     service.beta.openshift.io/inject-cabundle: "true"
     {{- else if eq .Values.webhook.certMode "cert-manager" }}
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "assay.fullname" . }}-webhook
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "cupel.fullname" . }}-webhook
     {{- end }}
 webhooks:
   - name: exceptions.security.davano.io
@@ -136,7 +136,7 @@ webhooks:
     timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
     clientConfig:
       service:
-        name: {{ include "assay.webhookServiceName" . }}
+        name: {{ include "cupel.webhookServiceName" . }}
         namespace: {{ .Release.Namespace }}
         path: /sign-exception
         port: 443
@@ -156,7 +156,7 @@ webhooks:
     timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
     clientConfig:
       service:
-        name: {{ include "assay.webhookServiceName" . }}
+        name: {{ include "cupel.webhookServiceName" . }}
         namespace: {{ .Release.Namespace }}
         path: /sign-promotion
         port: 443

@@ -16,8 +16,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
 )
 
 func exception(mutate func(*securityv1alpha1.ArtifactException)) securityv1alpha1.ArtifactException {
@@ -199,10 +199,10 @@ func TestAcceptedRiskIsRecordedWithTheAuthenticatedApprover(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	signer := &ExceptionSigner{Recorder: &audit.Recorder{Client: c, Namespace: "assay-system"}}
+	signer := &ExceptionSigner{Recorder: &audit.Recorder{Client: c, Namespace: "cupel-system"}}
 
 	ex := securityv1alpha1.ArtifactException{
-		ObjectMeta: metav1.ObjectMeta{Name: "waiver", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "waiver", Namespace: "cupel-system"},
 		Spec: securityv1alpha1.ArtifactExceptionSpec{
 			ModelName: "fraud", ModelVersion: "v3", Reason: "compensating control",
 			Rules: []string{"requireSignature"},
@@ -222,7 +222,7 @@ func TestAcceptedRiskIsRecordedWithTheAuthenticatedApprover(t *testing.T) {
 		t.Fatalf("should have been signed and allowed: %+v", resp.Result)
 	}
 
-	records, _, err := (&audit.Recorder{Client: c, Namespace: "assay-system"}).Chain(context.Background())
+	records, _, err := (&audit.Recorder{Client: c, Namespace: "cupel-system"}).Chain(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -54,7 +54,7 @@ spec:
           spec:
             description: |-
               ComplianceProfileSpec declares a governance framework to report against and
-              carries the organizational attestations Assay cannot produce itself.
+              carries the organizational attestations Cupel cannot produce itself.
             properties:
               attestations:
                 description: Attestations close controls that have no technical evidence
@@ -118,7 +118,7 @@ spec:
                     justification:
                       description: |-
                         Justification for the exclusion. Required — an unexplained exclusion
-                        is indistinguishable from an oversight, so Assay rejects it.
+                        is indistinguishable from an oversight, so Cupel rejects it.
                       minLength: 1
                       type: string
                   required:

@@ -15,7 +15,7 @@ resources:
 patches:
   - target:
       kind: Deployment
-      name: assay-controller-manager
+      name: cupel-controller-manager
     patch: |
       - op: replace
         path: /spec/replicas
@@ -44,7 +44,7 @@ patches:
       apiVersion: policy/v1
       kind: PodDisruptionBudget
       metadata:
-        name: assay-controller-manager
+        name: cupel-controller-manager
 
   - target:
       kind: ValidatingWebhookConfiguration
@@ -53,7 +53,7 @@ patches:
       apiVersion: admissionregistration.k8s.io/v1
       kind: ValidatingWebhookConfiguration
       metadata:
-        name: assay-model-deployment-gate
+        name: cupel-model-deployment-gate
 
   # The signer is gated behind --enable-webhook too, so leaving its
   # configuration behind would point a failurePolicy: Fail webhook at a
@@ -66,4 +66,4 @@ patches:
       apiVersion: admissionregistration.k8s.io/v1
       kind: MutatingWebhookConfiguration
       metadata:
-        name: assay-exception-signer
+        name: cupel-exception-signer

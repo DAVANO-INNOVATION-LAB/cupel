@@ -17,11 +17,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/metrics"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/policy"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/scanners"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/metrics"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 // ArtifactScanReconciler drives one ArtifactScan through fetch, scan, and

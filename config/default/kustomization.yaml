@@ -11,7 +11,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: assay-system
+namespace: cupel-system
 
 resources:
   - ../namespace
@@ -25,11 +25,11 @@ resources:
 labels:
   - includeSelectors: false
     pairs:
-      app.kubernetes.io/name: assay-model-scanner
-      app.kubernetes.io/part-of: assay
+      app.kubernetes.io/name: cupel-model-scanner
+      app.kubernetes.io/part-of: cupel
 
-# One place to retag. The Deployment's ASSAY_OPERATOR_IMAGE env must match, and
+# One place to retag. The Deployment's CUPEL_OPERATOR_IMAGE env must match, and
 # it is patched in the overlays rather than here so the base stays literal.
 images:
-  - name: ghcr.io/davano-innovation-lab/assay-operator
+  - name: ghcr.io/davano-innovation-lab/cupel-operator
     newTag: 0.2.4

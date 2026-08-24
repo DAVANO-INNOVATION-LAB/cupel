@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/DAVANO-INNOVATION-LAB/assay/blob/main/SECURITY.md
+    url: https://github.com/DAVANO-INNOVATION-LAB/cupel/blob/main/SECURITY.md
     about: >-
-      Do not open a public issue. Anything that makes Assay report an unsafe
+      Do not open a public issue. Anything that makes Cupel report an unsafe
       artifact as safe, or gets a model past the admission gate, goes to
       DAVANO@davano.net instead.

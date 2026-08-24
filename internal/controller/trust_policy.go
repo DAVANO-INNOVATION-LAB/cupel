@@ -11,15 +11,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/provenance"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/provenance"
 )
 
 const (
 	// TrustPolicyConfigMap holds the rendered TrustedPublishers. Scan pods
 	// project it read-only; it never contains a private key, only the public
 	// material needed to check a signature.
-	TrustPolicyConfigMap = "assay-trust-policy"
+	TrustPolicyConfigMap = "cupel-trust-policy"
 	// TrustPolicyKey is the file name inside the ConfigMap.
 	TrustPolicyKey = "trust-policy.json"
 	// TrustPolicyMountPath is where scan pods see it.

@@ -1,4 +1,4 @@
-module github.com/DAVANO-INNOVATION-LAB/assay
+module github.com/DAVANO-INNOVATION-LAB/cupel
 
 go 1.25.8
 

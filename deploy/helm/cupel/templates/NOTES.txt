@@ -1,4 +1,4 @@
-Assay {{ .Chart.AppVersion }} installed into namespace {{ .Release.Namespace }}.
+Cupel {{ .Chart.AppVersion }} installed into namespace {{ .Release.Namespace }}.
 
 Webhook certificates: {{ .Values.webhook.certMode }}
 {{- if eq .Values.webhook.certMode "openshift" }}
@@ -9,7 +9,7 @@ Webhook certificates: {{ .Values.webhook.certMode }}
   cert-manager issues the cert and injects the CA bundle. If the pod stays in
   ContainerCreating, cert-manager is not running or its CA injector is disabled.
 {{- else }}
-  You are supplying the cert and CA bundle. Assay does not verify either.
+  You are supplying the cert and CA bundle. Cupel does not verify either.
 {{- end }}
 
 {{ if .Values.operator.requireReport -}}
@@ -17,12 +17,12 @@ ENFORCING: workloads referencing an unscanned model are DENIED.
 {{- else -}}
 PERMISSIVE: workloads referencing an unscanned model are ADMITTED.
 
-  This is the default so that installing Assay cannot break a running cluster.
+  This is the default so that installing Cupel cannot break a running cluster.
   It also means the gate currently admits anything it has not scanned, which
   from the outside is indistinguishable from a gate that is working. Before
   turning it on, watch:
 
-    assay_admission_decisions_total{outcome="allowed_unscanned"}
+    cupel_admission_decisions_total{outcome="allowed_unscanned"}
 
   and drive it to zero. Then: --set operator.requireReport=true
 {{- end }}
@@ -38,9 +38,9 @@ their own namespace, or their pods are never admitted:
 
 Check it came up:
 
-  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "assay.fullname" . }}
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "cupel.fullname" . }}
 
 CRDs were installed from the chart's crds/ directory. Helm does not upgrade or
 delete those on `helm upgrade`/`helm uninstall` — apply CRD changes yourself:
 
-  kubectl apply -f https://raw.githubusercontent.com/DAVANO-INNOVATION-LAB/assay/main/config/crd/bases
+  kubectl apply -f https://raw.githubusercontent.com/DAVANO-INNOVATION-LAB/cupel/main/config/crd/bases

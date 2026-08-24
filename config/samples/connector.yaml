@@ -1,12 +1,12 @@
 ---
-# Connects Assay to the OpenShift AI Model Registry. Every model version the
+# Connects Cupel to the OpenShift AI Model Registry. Every model version the
 # registry knows about gets an ArtifactScan, and the verdict is written back
 # as custom properties so it shows up in the registry UI.
 apiVersion: security.davano.io/v1alpha1
 kind: ModelRegistryConnector
 metadata:
   name: rhoai-registry
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   registryURL: https://modelregistry-sample.rhoai-model-registries.svc.cluster.local:8080
   authSecretRef:
@@ -20,7 +20,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: model-registry-token
-  namespace: assay-system
+  namespace: cupel-system
 type: Opaque
 stringData:
   # Replace with a token for a service account that can read the registry and

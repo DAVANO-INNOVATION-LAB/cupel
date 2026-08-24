@@ -4,13 +4,13 @@
 # this order:
 #
 #   1. --require-report=true    unscanned models are DENIED rather than admitted.
-#      Drive assay_admission_decisions_total{outcome="allowed_unscanned"} to zero
+#      Drive cupel_admission_decisions_total{outcome="allowed_unscanned"} to zero
 #      first, or this will deny workloads that were previously fine.
 #
-#   2. failurePolicy: Fail      an Assay outage blocks model deployments instead
+#   2. failurePolicy: Fail      an Cupel outage blocks model deployments instead
 #      of silently letting them through. This is the setting that makes the gate
-#      real: with Ignore, anyone who can disrupt Assay can bypass it. It also
-#      means a broken Assay is now an incident, so do it after 1 is stable.
+#      real: with Ignore, anyone who can disrupt Cupel can bypass it. It also
+#      means a broken Cupel is now an incident, so do it after 1 is stable.
 #
 #   kubectl apply -k config/overlays/enforcing
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -22,7 +22,7 @@ resources:
 patches:
   - target:
       kind: Deployment
-      name: assay-controller-manager
+      name: cupel-controller-manager
     patch: |
       # Replace rather than append: appending leaves the flag present twice
       # with contradictory values, which works (Go's flag package takes the
@@ -38,7 +38,7 @@ patches:
 
   - target:
       kind: ValidatingWebhookConfiguration
-      name: assay-model-deployment-gate
+      name: cupel-model-deployment-gate
     patch: |
       - op: replace
         path: /webhooks/0/failurePolicy

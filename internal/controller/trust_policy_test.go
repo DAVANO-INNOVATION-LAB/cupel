@@ -11,9 +11,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/provenance"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/scanners"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/provenance"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 func TestRenderTrustPolicyFlattensPublishers(t *testing.T) {
@@ -74,22 +74,22 @@ func TestRenderTrustPolicyDropsUnusablePublishers(t *testing.T) {
 func TestSyncTrustPolicyWritesConfigMap(t *testing.T) {
 	scheme := digestTestScheme(t)
 	tp := &securityv1alpha1.TrustedPublisher{
-		ObjectMeta: metav1.ObjectMeta{Name: "gha", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "gha", Namespace: "cupel-system"},
 		Spec: securityv1alpha1.TrustedPublisherSpec{
 			KeylessIdentity: &securityv1alpha1.KeylessIdentity{
 				Issuer:  "https://token.actions.githubusercontent.com",
-				Subject: "https://github.com/davano/assay/.github/workflows/release.yml@refs/heads/main",
+				Subject: "https://github.com/davano/cupel/.github/workflows/release.yml@refs/heads/main",
 			},
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tp).Build()
 
-	if err := SyncTrustPolicy(context.Background(), c, "assay-system", "/trust/root.json", true); err != nil {
+	if err := SyncTrustPolicy(context.Background(), c, "cupel-system", "/trust/root.json", true); err != nil {
 		t.Fatal(err)
 	}
 
 	var cm corev1.ConfigMap
-	key := client.ObjectKey{Namespace: "assay-system", Name: TrustPolicyConfigMap}
+	key := client.ObjectKey{Namespace: "cupel-system", Name: TrustPolicyConfigMap}
 	if err := c.Get(context.Background(), key, &cm); err != nil {
 		t.Fatalf("the trust ConfigMap was not created: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestSyncTrustPolicyIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 3; i++ {
-		if err := SyncTrustPolicy(ctx, c, "assay-system", "", false); err != nil {
+		if err := SyncTrustPolicy(ctx, c, "cupel-system", "", false); err != nil {
 			t.Fatalf("sync %d failed: %v", i, err)
 		}
 	}
@@ -133,7 +133,7 @@ func TestSyncTrustPolicyIsIdempotent(t *testing.T) {
 // would never catch.
 func TestProvenanceJobMountsTrustPolicy(t *testing.T) {
 	scan := &securityv1alpha1.ArtifactScan{
-		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "cupel-system"},
 		Spec: securityv1alpha1.ArtifactScanSpec{
 			ModelName: "m", ModelVersion: "1",
 			Artifact: securityv1alpha1.ArtifactRef{URI: "s3://bucket/model"},
@@ -143,7 +143,7 @@ func TestProvenanceJobMountsTrustPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	job, err := buildScanJob(scan, def, nil, JobConfig{OperatorImage: "assay:test"})
+	job, err := buildScanJob(scan, def, nil, JobConfig{OperatorImage: "cupel:test"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestProvenanceJobMountsTrustPolicy(t *testing.T) {
 // A scanner that is not provenance has no business holding trust material.
 func TestNonProvenanceJobDoesNotMountTrustPolicy(t *testing.T) {
 	scan := &securityv1alpha1.ArtifactScan{
-		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "cupel-system"},
 		Spec: securityv1alpha1.ArtifactScanSpec{
 			ModelName: "m", ModelVersion: "1",
 			Artifact: securityv1alpha1.ArtifactRef{URI: "s3://bucket/model"},
@@ -196,7 +196,7 @@ func TestNonProvenanceJobDoesNotMountTrustPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	job, err := buildScanJob(scan, def, nil, JobConfig{OperatorImage: "assay:test"})
+	job, err := buildScanJob(scan, def, nil, JobConfig{OperatorImage: "cupel:test"})
 	if err != nil {
 		t.Fatal(err)
 	}

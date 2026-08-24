@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation"
 
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/registry"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/registry"
 )
 
 func TestModelReportNameIsDeterministic(t *testing.T) {

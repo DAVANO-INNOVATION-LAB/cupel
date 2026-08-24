@@ -1,10 +1,10 @@
-# Default values for Assay.
+# Default values for Cupel.
 
 image:
   # Published to GitHub Container Registry. A docker.io/davanolab mirror is
   # planned; point this there once it exists, or at your own mirror for an
   # air-gapped install.
-  repository: ghcr.io/davano-innovation-lab/assay-operator
+  repository: ghcr.io/davano-innovation-lab/cupel-operator
   tag: ""          # defaults to .Chart.AppVersion
   pullPolicy: IfNotPresent
   pullSecrets: []
@@ -17,7 +17,7 @@ fullnameOverride: ""
 
 serviceAccount:
   # The operator's own identity.
-  name: assay-controller-manager
+  name: cupel-controller-manager
   annotations: {}
 
 resources:
@@ -49,9 +49,9 @@ operator:
   logLevel: info               # zap: debug | info | error
 
   # Deny workloads referencing a model with no security report. The permissive
-  # default means installing Assay cannot break a running cluster — but it also
+  # default means installing Cupel cannot break a running cluster — but it also
   # means the gate admits anything it has not scanned. Watch
-  # assay_admission_decisions_total{outcome="allowed_unscanned"} before flipping
+  # cupel_admission_decisions_total{outcome="allowed_unscanned"} before flipping
   # this, and see the alerts in metrics.prometheusRule.
   requireReport: false
 
@@ -94,7 +94,7 @@ operator:
 # Scan identity
 # ---------------------------------------------------------------------------
 scanner:
-  serviceAccountName: assay-scanner
+  serviceAccountName: cupel-scanner
 
   # Scan Jobs are created in the namespace of the ArtifactScan, and the scan
   # ServiceAccount must exist there or the pod is unschedulable. List every
@@ -109,7 +109,7 @@ webhook:
   enabled: true
 
   # How the serving certificate is provisioned. This is the setting that
-  # decides whether Assay can run on your cluster at all:
+  # decides whether Cupel can run on your cluster at all:
   #
   #   cert-manager - a Certificate/Issuer pair is created and the CA bundle is
   #                  injected by cert-manager's ca-injector. Requires
@@ -131,7 +131,7 @@ webhook:
   # looks exactly like a working gate.
   certMode: cert-manager
 
-  certSecretName: assay-webhook-server-cert
+  certSecretName: cupel-webhook-server-cert
 
   # Only used when certMode is external.
   caBundle: ""
@@ -142,13 +142,13 @@ webhook:
     duration: 8760h    # 1y
     renewBefore: 720h  # 30d
 
-  # Ignore keeps an Assay outage from blocking every model deployment. Fail is
-  # the stronger setting: Ignore means anyone who can disrupt Assay can also
+  # Ignore keeps an Cupel outage from blocking every model deployment. Fail is
+  # the stronger setting: Ignore means anyone who can disrupt Cupel can also
   # bypass the gate.
   failurePolicy: Ignore
   timeoutSeconds: 10
 
-  # Only namespaces carrying this label are gated. Assay never gates itself.
+  # Only namespaces carrying this label are gated. Cupel never gates itself.
   namespaceSelector:
     matchExpressions:
       - key: security.davano.io/enforce

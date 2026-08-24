@@ -1,5 +1,5 @@
 name: False positive
-description: Assay flagged something that is actually fine
+description: Cupel flagged something that is actually fine
 labels: ["detection", "false-positive", "needs-triage"]
 body:
   - type: markdown

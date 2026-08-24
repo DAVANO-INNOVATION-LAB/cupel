@@ -17,10 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/controller"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/metrics"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/controller"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/metrics"
 )
 
 // Annotations a workload uses to declare which model it serves. KServe
@@ -106,7 +106,7 @@ func (g *ModelGate) Handle(ctx context.Context, req admission.Request) admission
 		outcome = metrics.OutcomeAllowedSkipped
 		reason = "skip-validation annotation set on the workload"
 		ref = extractModelRef(obj)
-		return admission.Allowed("assay validation explicitly skipped by annotation")
+		return admission.Allowed("cupel validation explicitly skipped by annotation")
 	}
 
 	ref = extractModelRef(obj)
@@ -133,9 +133,9 @@ func (g *ModelGate) Handle(ctx context.Context, req admission.Request) admission
 					describeEvidence(evidence), AnnotationModel, AnnotationVersion, AnnotationSkip))
 			}
 			outcome = metrics.OutcomeAllowedUnidentified
-			resp := admission.Allowed("assay: model could not be identified")
+			resp := admission.Allowed("cupel: model could not be identified")
 			resp.Warnings = append(resp.Warnings, fmt.Sprintf(
-				"assay: this workload appears to serve a model (%s) but does not identify which one, "+
+				"cupel: this workload appears to serve a model (%s) but does not identify which one, "+
 					"so no scan verdict was applied", describeEvidence(evidence)))
 			return resp
 		}
@@ -151,14 +151,14 @@ func (g *ModelGate) Handle(ctx context.Context, req admission.Request) admission
 		if g.RequireReport {
 			outcome = metrics.OutcomeDenied
 			return admission.Denied(fmt.Sprintf(
-				"model %q version %q has not been scanned by Assay; register it and wait for the scan to complete",
+				"model %q version %q has not been scanned by Cupel; register it and wait for the scan to complete",
 				ref.Model, ref.Version))
 		}
-		// Admitted only because Assay knows nothing about this model. Counted
+		// Admitted only because Cupel knows nothing about this model. Counted
 		// separately from a real approval: the two are opposite facts that look
 		// identical from outside.
 		outcome = metrics.OutcomeAllowedNoScan
-		return admission.Allowed(fmt.Sprintf("no Assay security report for model %q version %q", ref.Model, ref.Version))
+		return admission.Allowed(fmt.Sprintf("no Cupel security report for model %q version %q", ref.Model, ref.Version))
 	}
 
 	enforcement := g.enforcementFor(ctx, req.Namespace, annotations)
@@ -169,20 +169,20 @@ func (g *ModelGate) Handle(ctx context.Context, req admission.Request) admission
 		switch enforcement {
 		case "Audit":
 			outcome = metrics.OutcomeAllowedAudit
-			return admission.Allowed("assay: " + decision.reason + " (audit mode)")
+			return admission.Allowed("cupel: " + decision.reason + " (audit mode)")
 		case "Warn":
 			outcome = metrics.OutcomeAllowedWarn
-			resp := admission.Allowed("assay: admitted with warnings")
-			resp.Warnings = append(resp.Warnings, "assay: "+decision.reason)
+			resp := admission.Allowed("cupel: admitted with warnings")
+			resp.Warnings = append(resp.Warnings, "cupel: "+decision.reason)
 			return resp
 		default:
 			outcome = metrics.OutcomeDenied
-			return admission.Denied("assay: " + decision.reason)
+			return admission.Denied("cupel: " + decision.reason)
 		}
 	}
 
 	return admission.Allowed(fmt.Sprintf(
-		"assay: model %q version %q approved (risk score %d)", ref.Model, ref.Version, report.Status.RiskScore))
+		"cupel: model %q version %q approved (risk score %d)", ref.Model, ref.Version, report.Status.RiskScore))
 }
 
 // findReport returns the security report for a model, or nil when none exists.

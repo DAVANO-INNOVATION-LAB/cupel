@@ -12,7 +12,7 @@ import (
 // Binding grants a role over a set of tenants to whoever matches Group.
 //
 // Bindings are configuration, not code, because the mapping between an
-// organisation's identity provider groups and Assay's roles is the one part of
+// organisation's identity provider groups and Cupel's roles is the one part of
 // this that is different at every site. Nothing here trusts the browser: the
 // group list comes from a verified token.
 type Binding struct {
@@ -90,7 +90,7 @@ func (bs Bindings) Validate() error {
 	return nil
 }
 
-// Claims is the subset of a verified OIDC token Assay reads.
+// Claims is the subset of a verified OIDC token Cupel reads.
 type Claims struct {
 	Username string
 	Groups   []string

@@ -71,11 +71,11 @@ jobs:
       # binaries: a scanner nobody can verify is a scanner nobody should trust.
       - name: Checksums
         working-directory: dist
-        run: sha256sum assay-* > SHA256SUMS
+        run: sha256sum cupel-* > SHA256SUMS
 
       - uses: actions/upload-artifact@v7
         with:
-          name: assay-cli
+          name: cupel-cli
           path: dist/
 
       - name: Publish release
@@ -83,7 +83,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            dist/assay-*
+            dist/cupel-*
             dist/SHA256SUMS
           generate_release_notes: true
 
@@ -126,8 +126,8 @@ jobs:
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
           tags: |
-            ${{ env.REGISTRY }}/assay-operator:${{ steps.version.outputs.image_tag }}
-            ${{ env.REGISTRY }}/assay-operator:latest
+            ${{ env.REGISTRY }}/cupel-operator:${{ steps.version.outputs.image_tag }}
+            ${{ env.REGISTRY }}/cupel-operator:latest
           # A supply-chain tool should ship its own provenance and SBOM.
           provenance: mode=max
           sbom: true
@@ -135,7 +135,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       # A supply-chain security tool that ships unsigned images is asking its
-      # users to do something it refuses to let their models do. Assay's own
+      # users to do something it refuses to let their models do. Cupel's own
       # provenance scanner fails an artifact with no verified signature; these
       # are the images that scanner runs in.
       #
@@ -148,7 +148,7 @@ jobs:
         if: ${{ startsWith(github.ref, 'refs/tags/') || github.event.inputs.push_images == 'true' }}
         run: |
           cosign sign --yes --recursive \
-            "${{ env.REGISTRY }}/assay-operator@${{ steps.build.outputs.digest }}"
+            "${{ env.REGISTRY }}/cupel-operator@${{ steps.build.outputs.digest }}"
 
       # Verifying here rather than trusting the signing step to have worked.
       # A release that silently produced no signature looks identical to one
@@ -159,7 +159,7 @@ jobs:
           cosign verify \
             --certificate-identity-regexp "^https://github.com/${{ github.repository }}/" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            "${{ env.REGISTRY }}/assay-operator@${{ steps.build.outputs.digest }}" > /dev/null
+            "${{ env.REGISTRY }}/cupel-operator@${{ steps.build.outputs.digest }}" > /dev/null
           echo "signature verified for ${{ steps.build.outputs.digest }}"
 
       # Docker Hub is a mirror, not a second build: imagetools copies the
@@ -190,8 +190,8 @@ jobs:
         run: |
           for tag in "${{ steps.version.outputs.image_tag }}" latest; do
             docker buildx imagetools create \
-              --tag "docker.io/${{ env.DOCKERHUB_NAMESPACE }}/assay-operator:$tag" \
-              "${{ env.REGISTRY }}/assay-operator@${{ steps.build.outputs.digest }}"
+              --tag "docker.io/${{ env.DOCKERHUB_NAMESPACE }}/cupel-operator:$tag" \
+              "${{ env.REGISTRY }}/cupel-operator@${{ steps.build.outputs.digest }}"
           done
 
   scanners:

@@ -1,6 +1,6 @@
 package compliance
 
-// NIST SP 800-53 Rev 5 mapping, for the controls Assay contributes evidence
+// NIST SP 800-53 Rev 5 mapping, for the controls Cupel contributes evidence
 // toward on the AI model layer.
 //
 // Two framings matter here and are easy to blur.
@@ -9,15 +9,15 @@ package compliance
 // scanner speaks to, drawn from the priorities the DoD AI Cybersecurity Risk
 // Management Tailoring Guide sets out — which maps MITRE ATLAS threat vectors
 // onto CNSSI 1253 and 800-53 and separates an infrastructure layer from a
-// model layer. Assay operates on the model layer. Nothing here says anything
+// model layer. Cupel operates on the model layer. Nothing here says anything
 // about the infrastructure controls a system also has to satisfy.
 //
 // Second, and more important for anyone putting this in front of an
-// authorizing official: Assay *contributes evidence toward* these controls. It
+// authorizing official: Cupel *contributes evidence toward* these controls. It
 // does not satisfy them. A control is satisfied by a system, assessed by a
 // human, in a documented boundary. A scanner produces one input to that. The
 // Automation value on each entry says how much of an input, and a control
-// marked AutomationNone is here to record that Assay has nothing to offer it,
+// marked AutomationNone is here to record that Cupel has nothing to offer it,
 // not to pad the list.
 //
 // CNSSI 1253 is the National Security Systems categorization and overlay on
@@ -41,7 +41,7 @@ const (
 	FamilySupplyChain       Function = "SR"
 )
 
-// nist80053r5 are the controls Assay speaks to.
+// nist80053r5 are the controls Cupel speaks to.
 var nist80053r5 = []Control{
 	// ---------------- Supply chain: the closest fit ----------------
 	{
@@ -49,7 +49,7 @@ var nist80053r5 = []Control{
 		Text:       "Provenance: document, monitor, and maintain valid provenance of systems, system components, and associated data.",
 		Automation: AutomationPartial,
 		Evidence:   []EvidenceKind{EvidenceProvenance, EvidenceInventory},
-		Rationale: "Assay verifies Sigstore signatures against declared trusted publishers and records which " +
+		Rationale: "Cupel verifies Sigstore signatures against declared trusted publishers and records which " +
 			"identity signed which bytes, with partial signature coverage reported as its own finding. It " +
 			"establishes provenance for the artifact it scanned; it cannot establish provenance for the data " +
 			"the model was trained on, which is the other half of what this control asks for.",
@@ -94,7 +94,7 @@ var nist80053r5 = []Control{
 		Text:       "Malicious Code Protection: implement malicious code protection mechanisms to detect and eradicate malicious code.",
 		Automation: AutomationPartial,
 		Evidence:   []EvidenceKind{EvidenceSecurityScan},
-		Rationale: "Detection only. Assay refuses a malicious artifact at admission; it does not eradicate " +
+		Rationale: "Detection only. Cupel refuses a malicious artifact at admission; it does not eradicate " +
 			"anything, and the control's remediation clause is met elsewhere.",
 	},
 	{
@@ -139,7 +139,7 @@ var nist80053r5 = []Control{
 		Text:       "Least Functionality: configure the system to provide only mission-essential capabilities.",
 		Automation: AutomationPartial,
 		Evidence:   []EvidenceKind{EvidenceSecurityScan, EvidencePolicy},
-		Rationale: "Assay reports formats that execute code on load and lets policy refuse them, which is this " +
+		Rationale: "Cupel reports formats that execute code on load and lets policy refuse them, which is this " +
 			"control applied to serialization: safetensors cannot execute anything, and a pickle can.",
 	},
 
@@ -180,7 +180,7 @@ var nist80053r5 = []Control{
 		Evidence:   []EvidenceKind{EvidencePolicy},
 		Rationale: "The console API authenticates every request and returns only what the subject's role and " +
 			"tenant scope permit, with findings redacted server-side rather than hidden in the page. This " +
-			"covers access to Assay's own data, not to the models themselves.",
+			"covers access to Cupel's own data, not to the models themselves.",
 	},
 	{
 		ID: "AC-6", Function: FamilyAccessControl, Category: "AC",
@@ -215,7 +215,7 @@ var nist80053r5 = []Control{
 		ID: "SA-11", Function: FamilySystemAcquisition, Category: "SA",
 		Text:       "Developer Testing and Evaluation: require the developer of the system, system component, or system service to perform testing and evaluation.",
 		Automation: AutomationNone,
-		Rationale: "Assay assesses an artifact it is handed. It says nothing about whether the party that built " +
+		Rationale: "Cupel assesses an artifact it is handed. It says nothing about whether the party that built " +
 			"the model tested it, which is what this control requires and what a third-party model almost " +
 			"never comes with.",
 	},
@@ -230,11 +230,11 @@ var nist80053r5 = []Control{
 		Text:       "Risk Assessment: conduct a risk assessment, including the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the system.",
 		Automation: AutomationNone,
 		Rationale: "A risk score over an artifact's findings is not a risk assessment of a system. Likelihood " +
-			"and magnitude of harm depend on what the model is used for, which Assay does not know.",
+			"and magnitude of harm depend on what the model is used for, which Cupel does not know.",
 	},
 }
 
-// NIST80053 returns the 800-53 Rev 5 subset Assay contributes evidence toward.
+// NIST80053 returns the 800-53 Rev 5 subset Cupel contributes evidence toward.
 func NIST80053() *Catalog {
 	c := &Catalog{
 		Framework: NIST80053R5,

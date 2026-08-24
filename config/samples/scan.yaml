@@ -6,7 +6,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ArtifactScan
 metadata:
   name: scan-fraud-detector-v2
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   modelName: fraud-detector
   modelVersion: v2.1.0
@@ -22,7 +22,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ArtifactException
 metadata:
   name: fraud-detector-v2-cve-waiver
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   modelName: fraud-detector
   modelVersion: v2.1.0
@@ -34,13 +34,13 @@ spec:
   approvedBy: security-team
   expiresAt: "2026-10-01T00:00:00Z"
 ---
-# A publisher whose signatures Assay trusts, for policies with
+# A publisher whose signatures Cupel trusts, for policies with
 # requireSignature: true.
 apiVersion: security.davano.io/v1alpha1
 kind: TrustedPublisher
 metadata:
   name: platform-ml-team
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   displayName: Platform ML Team
   keylessIdentity:

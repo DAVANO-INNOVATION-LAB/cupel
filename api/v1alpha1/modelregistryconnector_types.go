@@ -92,7 +92,7 @@ type ModelRegistryConnectorStatus struct {
 // +kubebuilder:printcolumn:name="Scans",type=integer,JSONPath=`.status.scansCreated`
 // +kubebuilder:printcolumn:name="Last Sync",type=date,JSONPath=`.status.lastSyncTime`
 
-// ModelRegistryConnector connects Assay to an OpenShift AI Model Registry.
+// ModelRegistryConnector connects Cupel to an OpenShift AI Model Registry.
 type ModelRegistryConnector struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

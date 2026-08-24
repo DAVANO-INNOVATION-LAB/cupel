@@ -15,9 +15,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/metrics"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/naming"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/metrics"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
 )
 
 const testNamespace = "models"
@@ -377,7 +377,7 @@ func TestInferenceServiceModelIsDerivedFromStorageURI(t *testing.T) {
 // "unscanned" — so with the shipped --require-report=false the gate admitted
 // every workload it was installed to stop. These pin the split-namespace case.
 func TestGateFindsReportInThePipelineNamespace(t *testing.T) {
-	const pipelineNS = "assay-system"
+	const pipelineNS = "cupel-system"
 
 	quarantined := report("fraud", "v1", func(r *securityv1alpha1.ModelSecurityReport) {
 		r.Namespace = pipelineNS
@@ -424,12 +424,12 @@ func TestGateWithoutReportNamespaceOnlyChecksTheWorkloadNamespace(t *testing.T) 
 func TestWorkloadNamespaceReportTakesPrecedence(t *testing.T) {
 	local := report("fraud", "v1", nil) // testNamespace, Approved
 	remote := report("fraud", "v1", func(r *securityv1alpha1.ModelSecurityReport) {
-		r.Namespace = "assay-system"
+		r.Namespace = "cupel-system"
 		r.Status.Verdict = securityv1alpha1.VerdictQuarantined
 	})
 
 	gate := newGate(t, local, remote)
-	gate.ReportNamespace = "assay-system"
+	gate.ReportNamespace = "cupel-system"
 
 	resp := gate.Handle(context.Background(), deployment(map[string]string{
 		AnnotationModel:   "fraud",
@@ -473,8 +473,8 @@ func TestUnscannedAdmissionsAreCountedSeparately(t *testing.T) {
 	}
 }
 
-// servingDeployment builds a Deployment with no Assay annotations at all —
-// the shape that used to be admitted with "nothing for assay to validate".
+// servingDeployment builds a Deployment with no Cupel annotations at all —
+// the shape that used to be admitted with "nothing for cupel to validate".
 func servingDeployment(t *testing.T, spec map[string]any) admission.Request {
 	t.Helper()
 	obj := map[string]any{
@@ -498,7 +498,7 @@ func servingDeployment(t *testing.T, spec map[string]any) admission.Request {
 }
 
 // The regression this feature exists to prevent. "No model reference; nothing
-// for assay to validate" was a claim, and for this workload it was false.
+// for cupel to validate" was a claim, and for this workload it was false.
 func TestUnannotatedServingWorkloadIsNotSilentlyAdmitted(t *testing.T) {
 	gate := newGate(t)
 	resp := gate.Handle(context.Background(), servingDeployment(t, map[string]any{

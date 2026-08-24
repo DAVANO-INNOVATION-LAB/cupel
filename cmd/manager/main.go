@@ -1,4 +1,4 @@
-// Command manager runs the Assay operator: the Model Registry
+// Command manager runs the Cupel operator: the Model Registry
 // connector, the scan orchestrator, and the admission gate.
 package main
 
@@ -15,11 +15,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/controller"
-	assaymetrics "github.com/DAVANO-INNOVATION-LAB/assay/internal/metrics"
-	assaywebhook "github.com/DAVANO-INNOVATION-LAB/assay/internal/webhook"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/controller"
+	cupelmetrics "github.com/DAVANO-INNOVATION-LAB/cupel/internal/metrics"
+	cupelwebhook "github.com/DAVANO-INNOVATION-LAB/cupel/internal/webhook"
 )
 
 var (
@@ -62,31 +62,31 @@ func main() {
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "address the probe endpoint binds to")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", true, "enable leader election for controller manager")
 	flag.BoolVar(&enableWebhook, "enable-webhook", true, "serve the model deployment admission webhook")
-	flag.StringVar(&operatorImage, "operator-image", os.Getenv("ASSAY_OPERATOR_IMAGE"),
-		"Assay image used for the fetch, publish, and built-in scanner steps")
-	flag.StringVar(&scannerRegistry, "scanner-registry", os.Getenv("ASSAY_SCANNER_REGISTRY"),
+	flag.StringVar(&operatorImage, "operator-image", os.Getenv("CUPEL_OPERATOR_IMAGE"),
+		"Cupel image used for the fetch, publish, and built-in scanner steps")
+	flag.StringVar(&scannerRegistry, "scanner-registry", os.Getenv("CUPEL_SCANNER_REGISTRY"),
 		"registry host and namespace holding the scanner images; set this to a mirror for air-gapped clusters")
-	flag.StringVar(&scanServiceAccount, "scan-service-account", "assay-scanner",
+	flag.StringVar(&scanServiceAccount, "scan-service-account", "cupel-scanner",
 		"service account scan jobs run as")
-	flag.StringVar(&pullSecret, "pull-secret", os.Getenv("ASSAY_PULL_SECRET"),
+	flag.StringVar(&pullSecret, "pull-secret", os.Getenv("CUPEL_PULL_SECRET"),
 		"name of a dockerconfigjson Secret mounted into scan jobs for OCI pulls")
-	flag.StringVar(&storageSecret, "storage-secret", os.Getenv("ASSAY_STORAGE_SECRET"),
+	flag.StringVar(&storageSecret, "storage-secret", os.Getenv("CUPEL_STORAGE_SECRET"),
 		"name of a Secret holding S3/ODF credentials for artifact fetches")
 	flag.StringVar(&workspaceSize, "workspace-size", "50Gi",
 		"size limit for the scan workspace volume")
 	flag.IntVar(&jobTTLSeconds, "job-ttl-seconds", 3600,
 		"seconds to retain completed scan jobs")
-	flag.StringVar(&defaultPolicy, "default-policy", os.Getenv("ASSAY_DEFAULT_POLICY"),
+	flag.StringVar(&defaultPolicy, "default-policy", os.Getenv("CUPEL_DEFAULT_POLICY"),
 		"policy consulted by the admission gate when a workload names none")
 	flag.BoolVar(&requireReport, "require-report", false,
-		"deny workloads that reference a model with no Assay security report")
+		"deny workloads that reference a model with no Cupel security report")
 	flag.IntVar(&scanDeadlineMinutes, "scan-deadline-minutes", 120,
 		"fail a scan that has not reached a verdict within this many minutes; "+
 			"without it a scan whose report never lands retries forever")
 	flag.StringVar(&auditNamespace, "audit-namespace", os.Getenv("POD_NAMESPACE"),
 		"namespace for the tamper-evident decision log; empty disables recording, "+
 			"which also leaves the AU-9 control mapping with nothing behind it")
-	flag.StringVar(&trustRootPath, "trust-root", os.Getenv("ASSAY_TRUST_ROOT"),
+	flag.StringVar(&trustRootPath, "trust-root", os.Getenv("CUPEL_TRUST_ROOT"),
 		"path to a Sigstore trusted-root JSON file for signature verification; "+
 			"left empty, provenance reports that it cannot verify rather than fetching one over the network")
 	flag.BoolVar(&requireTransparencyLog, "require-transparency-log", false,
@@ -103,10 +103,10 @@ func main() {
 
 	// Registered before the manager starts so the endpoint never serves a
 	// partial metric set.
-	assaymetrics.Register()
+	cupelmetrics.Register()
 
 	if operatorImage == "" {
-		setupLog.Error(nil, "operator image is required; set --operator-image or ASSAY_OPERATOR_IMAGE")
+		setupLog.Error(nil, "operator image is required; set --operator-image or CUPEL_OPERATOR_IMAGE")
 		os.Exit(1)
 	}
 
@@ -121,7 +121,7 @@ func main() {
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "assay-model-scanner.security.davano.io",
+		LeaderElectionID:       "cupel-model-scanner.security.davano.io",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -190,7 +190,7 @@ func main() {
 			setupLog.Info("WARNING: --report-namespace is unset and POD_NAMESPACE is empty; " +
 				"the admission gate will only find reports that share a namespace with the workload")
 		}
-		gate := &assaywebhook.ModelGate{
+		gate := &cupelwebhook.ModelGate{
 			Client:          mgr.GetClient(),
 			DefaultPolicy:   defaultPolicy,
 			RequireReport:   requireReport,
@@ -213,7 +213,7 @@ func main() {
 		// The signer records accepted risks itself: this webhook is the only
 		// place the authenticated identity of the approver exists, so a
 		// controller reading the stored object later can only see a claim.
-		signer := &assaywebhook.ExceptionSigner{}
+		signer := &cupelwebhook.ExceptionSigner{}
 		if auditNamespace != "" {
 			signer.Recorder = &audit.Recorder{Client: mgr.GetClient(), Namespace: auditNamespace}
 		}
@@ -224,7 +224,7 @@ func main() {
 		// Promotion requests are signed on the same principle: the identity
 		// that asked and the identity that decided both come from the
 		// authenticated request rather than from the payload.
-		if err := (&assaywebhook.PromotionSigner{}).SetupWithManager(mgr); err != nil {
+		if err := (&cupelwebhook.PromotionSigner{}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to set up promotion signer")
 			os.Exit(1)
 		}
@@ -248,7 +248,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting Assay", "webhook", enableWebhook, "image", operatorImage)
+	setupLog.Info("starting Cupel", "webhook", enableWebhook, "image", operatorImage)
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

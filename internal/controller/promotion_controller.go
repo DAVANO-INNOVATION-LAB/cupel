@@ -12,16 +12,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/naming"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
 )
 
 // PromotionReconciler drives PromotionRequests.
 //
 // The type had a CRD, a status with an approval workflow, and no controller —
 // a published API nothing acted on. Worse, the AI RMF mapping cited promotion
-// as a human-in-the-loop step "Assay records with an approver", which was a
+// as a human-in-the-loop step "Cupel records with an approver", which was a
 // claim of coverage with nothing behind it. This is the code that makes that
 // sentence true.
 //

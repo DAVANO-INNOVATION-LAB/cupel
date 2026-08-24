@@ -1,9 +1,9 @@
-// Command assay is the standalone Assay CLI. It runs the same model-format
+// Command cupel is the standalone Cupel CLI. It runs the same model-format
 // inspector and policy engine the in-cluster operator uses, with no cluster
 // required:
 //
-//	assay inspect <path>   scan a model file or directory and print a verdict
-//	assay version          print the build version
+//	cupel inspect <path>   scan a model file or directory and print a verdict
+//	cupel version          print the build version
 //
 // Exit codes are made for CI gates: 0 the artifact was Approved, 2 the
 // verdict is ReviewRequired, 3 the verdict is Quarantined, and 1 means the
@@ -23,10 +23,10 @@ import (
 	"syscall"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/inspector"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/policy"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/resolver"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/inspector"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/resolver"
 )
 
 // isURI distinguishes a remote artifact from a local path. A Windows drive
@@ -67,13 +67,13 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `assay - supply-chain scanner for ML model artifacts
+	fmt.Fprint(os.Stderr, `cupel - supply-chain scanner for ML model artifacts
 
 Usage:
-  assay inspect <path|uri> [--json] [--max-files N]
-  assay version
+  cupel inspect <path|uri> [--json] [--max-files N]
+  cupel version
 
-assay inspect scans a model for the ways an artifact can execute code: unsafe
+cupel inspect scans a model for the ways an artifact can execute code: unsafe
 serialization (pickle and friends), archive escapes, executable payloads, and
 configs that hand execution to model-supplied code.
 
@@ -96,7 +96,7 @@ Exit codes: 0 Approved, 2 ReviewRequired, 3 Quarantined, 1 scan error.
 `)
 }
 
-// jsonOutput is the machine-readable result of assay inspect.
+// jsonOutput is the machine-readable result of cupel inspect.
 type jsonOutput struct {
 	Path         string                          `json:"path"`
 	Verdict      string                          `json:"verdict"`
@@ -107,7 +107,7 @@ type jsonOutput struct {
 	Violations   []string                        `json:"violations,omitempty"`
 	Findings     []securityv1alpha1.Finding      `json:"findings"`
 	Coverage     *resolver.Coverage              `json:"coverage,omitempty"`
-	Version      string                          `json:"assayVersion"`
+	Version      string                          `json:"cupelVersion"`
 }
 
 func runInspect(args []string) int {
@@ -115,7 +115,7 @@ func runInspect(args []string) int {
 	jsonOut := fs.Bool("json", false, "emit the full report as JSON")
 	maxFiles := fs.Int("max-files", 0, "cap on files examined (0 = default limits)")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: assay inspect <path|uri> [--json] [--max-files N]")
+		fmt.Fprintln(os.Stderr, "Usage: cupel inspect <path|uri> [--json] [--max-files N]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -134,9 +134,9 @@ func runInspect(args []string) int {
 	path := target
 	var coverage *resolver.Coverage
 	if isURI(target) {
-		staged, err := os.MkdirTemp("", "assay-*")
+		staged, err := os.MkdirTemp("", "cupel-*")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "assay inspect: %v\n", err)
+			fmt.Fprintf(os.Stderr, "cupel inspect: %v\n", err)
 			return exitError
 		}
 		defer os.RemoveAll(staged)
@@ -146,13 +146,13 @@ func runInspect(args []string) int {
 
 		reg := resolver.NewRegistry()
 		if !reg.Supports(target) {
-			fmt.Fprintf(os.Stderr, "assay inspect: no resolver for %q\n", target)
+			fmt.Fprintf(os.Stderr, "cupel inspect: no resolver for %q\n", target)
 			return exitError
 		}
 		fmt.Fprintf(os.Stderr, "staging %s ...\n", target)
 		artifact, err := reg.Resolve(ctx, target, staged)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "assay inspect: %v\n", err)
+			fmt.Fprintf(os.Stderr, "cupel inspect: %v\n", err)
 			return exitError
 		}
 		path = staged
@@ -161,7 +161,7 @@ func runInspect(args []string) int {
 		// the exact bytes rather than a moving branch.
 		target = artifact.URI
 	} else if _, err := os.Stat(path); err != nil {
-		fmt.Fprintf(os.Stderr, "assay inspect: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cupel inspect: %v\n", err)
 		return exitError
 	}
 
@@ -172,7 +172,7 @@ func runInspect(args []string) int {
 
 	report, err := inspector.Inspect(path, limits)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "assay inspect: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cupel inspect: %v\n", err)
 		return exitError
 	}
 
@@ -220,7 +220,7 @@ func runInspect(args []string) int {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(out); err != nil {
-			fmt.Fprintf(os.Stderr, "assay inspect: %v\n", err)
+			fmt.Fprintf(os.Stderr, "cupel inspect: %v\n", err)
 			return exitError
 		}
 	} else {
@@ -269,7 +269,7 @@ var severityRank = map[string]int{
 }
 
 func printHuman(path string, report *inspector.Report, severities securityv1alpha1.SeverityCounts, eval policy.Evaluation, cov *resolver.Coverage) {
-	fmt.Printf("assay %s — %s\n", version, path)
+	fmt.Printf("cupel %s — %s\n", version, path)
 	fmt.Printf("scanned %d file(s)", report.FilesScanned)
 	if len(report.Formats) > 0 {
 		fmt.Printf(", formats: %v", report.Formats)

@@ -3,7 +3,7 @@
 ## v0.2.4
 
 Documentation and positioning. The README, SECURITY.md, the compliance guide and
-the console now describe what Assay is scoped to do and what each result rests
+the console now describe what Cupel is scoped to do and what each result rests
 on, in place of component-by-component maturity notes and a phased plan.
 
 The scanner catalog lists only scanners that ship. The status tables name
@@ -47,7 +47,7 @@ Six features across the artifact, the gate and the release pipeline.
 
 ### The model itself is described
 
-Assay imports [Tessera](https://github.com/DAVANO-INNOVATION-LAB/tessera) and
+Cupel imports [Tessera](https://github.com/DAVANO-INNOVATION-LAB/tessera) and
 produces a **CycloneDX 1.6 ML-BOM and an SPDX 3.0.1 document** from the model's
 own binary headers — architecture, measured parameter count, precision, tensor
 shapes, licence, declared lineage, and per-file SHA-256, SHA-384 and SHA-512.
@@ -83,7 +83,7 @@ because a verdict about the wrong model is worse than none.
 Every denial, and every admission that rested on something other than a clean
 verdict, is sealed into the tamper-evident chain with the authenticated
 username. Chain-write failures increment
-`assay_audit_write_failures_total` and never change the decision.
+`cupel_audit_write_failures_total` and never change the decision.
 
 ### The promotion workflow
 
@@ -104,9 +104,9 @@ finishing.
 
 ```
 cosign verify \
-  --certificate-identity-regexp '^https://github.com/DAVANO-INNOVATION-LAB/assay/' \
+  --certificate-identity-regexp '^https://github.com/DAVANO-INNOVATION-LAB/cupel/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  ghcr.io/davano-innovation-lab/assay-operator:0.2.4
+  ghcr.io/davano-innovation-lab/cupel-operator:0.2.4
 ```
 
 A **Docker Hub mirror** at `docker.io/davanolab` publishes from the same job
@@ -120,7 +120,7 @@ so both registries serve identical digests and one signature covers both.
 `ScannerResult` adds `drift` and `produced`; `ModelSecurityReportStatus` adds
 `aibomRef`; `PolicyRules` adds `requireAIBOM` and `blockModelDrift`.
 
-The `assay-promotion-signer` webhook has `failurePolicy: Fail`, so a
+The `cupel-promotion-signer` webhook has `failurePolicy: Fail`, so a
 `PromotionRequest` is only accepted when its approver can be established.
 
 ## v0.1.0

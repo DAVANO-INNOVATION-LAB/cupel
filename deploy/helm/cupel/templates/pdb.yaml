@@ -5,13 +5,13 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "assay.fullname" . }}
+  name: {{ include "cupel.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
 spec:
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
   selector:
     matchLabels:
-      {{- include "assay.selectorLabels" . | nindent 6 }}
+      {{- include "cupel.selectorLabels" . | nindent 6 }}
 {{- end }}

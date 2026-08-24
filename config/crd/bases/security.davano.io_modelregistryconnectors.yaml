@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ModelRegistryConnector connects Assay to an OpenShift AI Model
+        description: ModelRegistryConnector connects Cupel to an OpenShift AI Model
           Registry.
         properties:
           apiVersion:

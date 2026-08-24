@@ -46,7 +46,7 @@ spec:
             type: object
           spec:
             description: TrustedPublisherSpec declares a publisher whose signatures
-              Assay trusts.
+              Cupel trusts.
             properties:
               cosignPublicKey:
                 description: CosignPublicKey is a PEM-encoded public key for key-based

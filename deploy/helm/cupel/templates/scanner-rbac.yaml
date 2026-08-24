@@ -17,7 +17,7 @@ metadata:
   name: {{ $.Values.scanner.serviceAccountName }}
   namespace: {{ $ns }}
   labels:
-    {{- include "assay.labels" $ | nindent 4 }}
+    {{- include "cupel.labels" $ | nindent 4 }}
     app.kubernetes.io/component: scanner
 automountServiceAccountToken: false
 ---
@@ -27,7 +27,7 @@ metadata:
   name: {{ $.Values.scanner.serviceAccountName }}-role
   namespace: {{ $ns }}
   labels:
-    {{- include "assay.labels" $ | nindent 4 }}
+    {{- include "cupel.labels" $ | nindent 4 }}
 rules:
   - apiGroups: ["security.davano.io"]
     resources: ["artifactscanreports"]
@@ -39,7 +39,7 @@ metadata:
   name: {{ $.Values.scanner.serviceAccountName }}-rolebinding
   namespace: {{ $ns }}
   labels:
-    {{- include "assay.labels" $ | nindent 4 }}
+    {{- include "cupel.labels" $ | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

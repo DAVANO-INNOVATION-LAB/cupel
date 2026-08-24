@@ -13,9 +13,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/naming"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/policy"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
 )
 
 func digestTestScheme(t *testing.T) *runtime.Scheme {
@@ -40,7 +40,7 @@ func digestTestScheme(t *testing.T) *runtime.Scheme {
 // replayable onto different bytes at the same URI. This pins the whole chain.
 func TestScannedDigestReachesTheModelReport(t *testing.T) {
 	const (
-		namespace = "assay-system"
+		namespace = "cupel-system"
 		scanName  = "scan-fraud-v1"
 		digest    = "sha256:1f0e3dad99908345f7439f8ffabdffc4"
 	)
@@ -112,7 +112,7 @@ func TestScannedDigestReachesTheModelReport(t *testing.T) {
 // evidence was already garbage-collected. Nothing surfaced; the scan simply
 // never finished. A deadline turns that into a visible failure.
 func TestStuckScanFailsAtItsDeadline(t *testing.T) {
-	const namespace = "assay-system"
+	const namespace = "cupel-system"
 
 	longAgo := metav1.NewTime(time.Now().Add(-3 * time.Hour))
 	scan := &securityv1alpha1.ArtifactScan{
@@ -140,7 +140,7 @@ func TestStuckScanFailsAtItsDeadline(t *testing.T) {
 	r := &ArtifactScanReconciler{
 		Client:    c,
 		Scheme:    digestTestScheme(t),
-		JobConfig: JobConfig{OperatorImage: "assay:test", ServiceAccount: "assay-scanner"},
+		JobConfig: JobConfig{OperatorImage: "cupel:test", ServiceAccount: "cupel-scanner"},
 	}
 
 	res, err := r.Reconcile(context.Background(), ctrl.Request{
@@ -169,7 +169,7 @@ func TestStuckScanFailsAtItsDeadline(t *testing.T) {
 // A scan still inside its deadline must keep waiting rather than being failed
 // for being slow.
 func TestRunningScanInsideDeadlineKeepsWaiting(t *testing.T) {
-	const namespace = "assay-system"
+	const namespace = "cupel-system"
 
 	recent := metav1.NewTime(time.Now().Add(-1 * time.Minute))
 	scan := &securityv1alpha1.ArtifactScan{
@@ -191,7 +191,7 @@ func TestRunningScanInsideDeadlineKeepsWaiting(t *testing.T) {
 	r := &ArtifactScanReconciler{
 		Client:    c,
 		Scheme:    digestTestScheme(t),
-		JobConfig: JobConfig{OperatorImage: "assay:test", ServiceAccount: "assay-scanner"},
+		JobConfig: JobConfig{OperatorImage: "cupel:test", ServiceAccount: "cupel-scanner"},
 	}
 
 	res, err := r.Reconcile(context.Background(), ctrl.Request{
@@ -219,7 +219,7 @@ func TestRunningScanInsideDeadlineKeepsWaiting(t *testing.T) {
 // of the same scan name was indistinguishable from the current one's result.
 func TestScanReportsAreAdoptedByTheirScan(t *testing.T) {
 	const (
-		namespace = "assay-system"
+		namespace = "cupel-system"
 		scanName  = "scan-adopt"
 	)
 
@@ -267,7 +267,7 @@ func TestScanReportsAreAdoptedByTheirScan(t *testing.T) {
 // in the cluster affecting nothing and the button that created it looked
 // broken — because it was. This pins the disposition end to end.
 func TestAcceptingRiskClearsTheVerdict(t *testing.T) {
-	const ns = "assay-system"
+	const ns = "cupel-system"
 
 	risk := int32(60)
 	scan := &securityv1alpha1.ArtifactScan{

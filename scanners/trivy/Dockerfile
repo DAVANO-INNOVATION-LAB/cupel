@@ -31,8 +31,8 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 COPY --from=fetcher /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=fetcher /opt/trivy-db /opt/trivy-db
-COPY entrypoint.sh /usr/local/bin/assay-scan
-RUN chmod 0755 /usr/local/bin/assay-scan && chmod -R a+rX /opt/trivy-db
+COPY entrypoint.sh /usr/local/bin/cupel-scan
+RUN chmod 0755 /usr/local/bin/cupel-scan && chmod -R a+rX /opt/trivy-db
 
 # The baked DB lives on the read-only root filesystem. Trivy also wants to
 # write a scan cache, which is kept in memory so no writable cache dir is
@@ -50,10 +50,10 @@ USER 65532:65532
 # OCI labels. The source label is what links a published package back to this
 # repository on GitHub — without it the package is an orphan in the org's
 # package list and cannot inherit the repository's visibility.
-LABEL org.opencontainers.image.source="https://github.com/DAVANO-INNOVATION-LAB/assay" \
+LABEL org.opencontainers.image.source="https://github.com/DAVANO-INNOVATION-LAB/cupel" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="Davano Innovation Lab" \
-      org.opencontainers.image.title="assay-scanner-trivy" \
+      org.opencontainers.image.title="cupel-scanner-trivy" \
       org.opencontainers.image.description="Trivy with vulnerability database baked in"
 
-ENTRYPOINT ["/usr/local/bin/assay-scan"]
+ENTRYPOINT ["/usr/local/bin/cupel-scan"]

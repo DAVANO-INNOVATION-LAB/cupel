@@ -1,4 +1,4 @@
-// Package compliance maps Assay scan evidence onto AI governance frameworks.
+// Package compliance maps Cupel scan evidence onto AI governance frameworks.
 //
 // The design constraint that shapes everything here: NIST AI RMF 1.0 is a
 // voluntary organizational risk-management framework, not a technical control
@@ -13,7 +13,7 @@
 // with a date, or it stays open.
 package compliance
 
-// Framework identifies a governance framework Assay can report against.
+// Framework identifies a governance framework Cupel can report against.
 type Framework string
 
 // NISTAIRMF10 is NIST AI 100-1, AI Risk Management Framework 1.0.
@@ -29,17 +29,17 @@ const (
 	FunctionManage  Function = "MANAGE"
 )
 
-// Automation describes how much of a control Assay can evidence on its own.
+// Automation describes how much of a control Cupel can evidence on its own.
 //
 // This is the honest core of the package. A control marked AutomationNone can
 // never be satisfied by a scan result — only by a recorded human attestation.
 type Automation string
 
 const (
-	// AutomationFull means Assay produces sufficient technical evidence for
+	// AutomationFull means Cupel produces sufficient technical evidence for
 	// the control's intent on its own.
 	AutomationFull Automation = "Full"
-	// AutomationPartial means Assay evidences part of the control; the rest
+	// AutomationPartial means Cupel evidences part of the control; the rest
 	// needs organizational attestation.
 	AutomationPartial Automation = "Partial"
 	// AutomationNone means the control is organizational or procedural.
@@ -57,17 +57,17 @@ type Control struct {
 	Category string
 	// Text is the subcategory statement, quoted from AI RMF 1.0.
 	Text string
-	// Automation is how much Assay can evidence.
+	// Automation is how much Cupel can evidence.
 	Automation Automation
-	// Evidence names the Assay signals that speak to this control. Empty for
-	// controls Assay cannot observe.
+	// Evidence names the Cupel signals that speak to this control. Empty for
+	// controls Cupel cannot observe.
 	Evidence []EvidenceKind
 	// Rationale explains the mapping — why this scan evidence speaks to this
-	// control, or why nothing Assay produces can.
+	// control, or why nothing Cupel produces can.
 	Rationale string
 }
 
-// EvidenceKind is a category of signal Assay can produce from a scan.
+// EvidenceKind is a category of signal Cupel can produce from a scan.
 type EvidenceKind string
 
 const (
@@ -112,7 +112,7 @@ const notObservable = "Organizational or procedural control. No property of a mo
 // 72 subcategories. Control text is quoted from NIST AI 100-1.
 //
 // The Automation value on each entry is a deliberate judgement, not a
-// marketing one. Where Assay contributes only a fragment of what the
+// marketing one. Where Cupel contributes only a fragment of what the
 // subcategory asks for, it is Partial, and the report still demands an
 // attestation to close the control.
 var nistAIRMF10 = []Control{
@@ -126,7 +126,7 @@ var nistAIRMF10 = []Control{
 		ID: "GOVERN 1.2", Function: FunctionGovern, Category: "GOVERN 1",
 		Text:       "The characteristics of trustworthy AI are integrated into organizational policies, processes, procedures, and practices.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidencePolicy},
-		Rationale: "An ArtifactScanPolicy encodes part of this as executable rules, but only the security and resilience characteristic. The remaining characteristics are policy statements Assay does not hold.",
+		Rationale: "An ArtifactScanPolicy encodes part of this as executable rules, but only the security and resilience characteristic. The remaining characteristics are policy statements Cupel does not hold.",
 	},
 	{
 		ID: "GOVERN 1.3", Function: FunctionGovern, Category: "GOVERN 1",
@@ -144,13 +144,13 @@ var nistAIRMF10 = []Control{
 		ID: "GOVERN 1.5", Function: FunctionGovern, Category: "GOVERN 1",
 		Text:       "Ongoing monitoring and periodic review of the risk management process and its outcomes are planned and organizational roles and responsibilities clearly defined, including determining the frequency of periodic review.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceScanHistory},
-		Rationale: "Assay evidences the monitoring cadence through repeated scans. Roles, responsibilities, and review planning are organizational.",
+		Rationale: "Cupel evidences the monitoring cadence through repeated scans. Roles, responsibilities, and review planning are organizational.",
 	},
 	{
 		ID: "GOVERN 1.6", Function: FunctionGovern, Category: "GOVERN 1",
 		Text:       "Mechanisms are in place to inventory AI systems and are resourced according to organizational risk priorities.",
 		Automation: AutomationFull, Evidence: []EvidenceKind{EvidenceInventory, EvidenceRiskScore},
-		Rationale: "Assay maintains a ModelSecurityReport per registered model version, which is a live inventory keyed to the registry and ranked by risk score.",
+		Rationale: "Cupel maintains a ModelSecurityReport per registered model version, which is a live inventory keyed to the registry and ranked by risk score.",
 	},
 	{
 		ID: "GOVERN 1.7", Function: FunctionGovern, Category: "GOVERN 1",
@@ -295,7 +295,7 @@ var nistAIRMF10 = []Control{
 		ID: "MAP 3.5", Function: FunctionMap, Category: "MAP 3",
 		Text:       "Processes for human oversight are defined, assessed, and documented in accordance with organizational policies from the govern function.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceResidualRisk},
-		Rationale: "Exception approval and promotion are human-in-the-loop steps Assay records with an authenticated approver: a waiver carries an approver and an expiry, and a promotion into an environment requires a decision signed by the identity that made it and re-checks the security verdict at the moment it is acted on. The wider oversight design is organizational.",
+		Rationale: "Exception approval and promotion are human-in-the-loop steps Cupel records with an authenticated approver: a waiver carries an approver and an expiry, and a promotion into an environment requires a decision signed by the identity that made it and re-checks the security verdict at the moment it is acted on. The wider oversight design is organizational.",
 	},
 	{
 		ID: "MAP 4.1", Function: FunctionMap, Category: "MAP 4",
@@ -325,7 +325,7 @@ var nistAIRMF10 = []Control{
 		ID: "MEASURE 1.1", Function: FunctionMeasure, Category: "MEASURE 1",
 		Text:       "Approaches and metrics for measurement of AI risks enumerated during the map function are selected for implementation starting with the most significant AI risks. The risks or trustworthiness characteristics that will not – or cannot – be measured are properly documented.",
 		Automation: AutomationFull, Evidence: []EvidenceKind{EvidencePolicy, EvidenceCoverageGap},
-		Rationale: "The policy names the scanners selected, and Assay emits an explicit coverage gap for every trustworthiness characteristic it does not measure — which is precisely the documentation this subcategory asks for.",
+		Rationale: "The policy names the scanners selected, and Cupel emits an explicit coverage gap for every trustworthiness characteristic it does not measure — which is precisely the documentation this subcategory asks for.",
 	},
 	{
 		ID: "MEASURE 1.2", Function: FunctionMeasure, Category: "MEASURE 1",
@@ -341,7 +341,7 @@ var nistAIRMF10 = []Control{
 		ID: "MEASURE 2.1", Function: FunctionMeasure, Category: "MEASURE 2",
 		Text:       "Test sets, metrics, and details about the tools used during TEVV are documented.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceSecurityScan, EvidencePolicy},
-		Rationale: "Assay records which scanner ran, at which pinned image version, and what it found. Test sets for model performance TEVV are outside its scope.",
+		Rationale: "Cupel records which scanner ran, at which pinned image version, and what it found. Test sets for model performance TEVV are outside its scope.",
 	},
 	{
 		ID: "MEASURE 2.2", Function: FunctionMeasure, Category: "MEASURE 2",
@@ -356,7 +356,7 @@ var nistAIRMF10 = []Control{
 	{
 		ID: "MEASURE 2.4", Function: FunctionMeasure, Category: "MEASURE 2",
 		Text:       "The functionality and behavior of the AI system and its components – as identified in the map function – are monitored when in production.",
-		Automation: AutomationNone, Rationale: "This subcategory concerns inference behaviour in production. Assay assesses the artifact, so this control takes evidence from runtime monitoring or an attestation.",
+		Automation: AutomationNone, Rationale: "This subcategory concerns inference behaviour in production. Cupel assesses the artifact, so this control takes evidence from runtime monitoring or an attestation.",
 	},
 	{
 		ID: "MEASURE 2.5", Function: FunctionMeasure, Category: "MEASURE 2",
@@ -367,13 +367,13 @@ var nistAIRMF10 = []Control{
 		ID: "MEASURE 2.6", Function: FunctionMeasure, Category: "MEASURE 2",
 		Text:       "The AI system is evaluated regularly for safety risks – as identified in the map function. The AI system to be deployed is demonstrated to be safe, its residual negative risk does not exceed the risk tolerance, and it can fail safely, particularly if made to operate beyond its knowledge limits.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceRiskScore, EvidenceResidualRisk},
-		Rationale: "Assay evidences that residual risk is bounded by policy and explicitly accepted where it is not. Fail-safe behaviour and knowledge limits require a TEVV attestation.",
+		Rationale: "Cupel evidences that residual risk is bounded by policy and explicitly accepted where it is not. Fail-safe behaviour and knowledge limits require a TEVV attestation.",
 	},
 	{
 		ID: "MEASURE 2.7", Function: FunctionMeasure, Category: "MEASURE 2",
 		Text:       "AI system security and resilience – as identified in the map function – are evaluated and documented.",
 		Automation: AutomationFull, Evidence: []EvidenceKind{EvidenceSecurityScan, EvidenceSecrets, EvidenceSBOM},
-		Rationale: "This is the subcategory Assay exists to satisfy: malware, known vulnerabilities, embedded secrets, and unsafe serialization are evaluated on every model version and the results are retained as cluster resources.",
+		Rationale: "This is the subcategory Cupel exists to satisfy: malware, known vulnerabilities, embedded secrets, and unsafe serialization are evaluated on every model version and the results are retained as cluster resources.",
 	},
 	{
 		ID: "MEASURE 2.8", Function: FunctionMeasure, Category: "MEASURE 2",
@@ -390,7 +390,7 @@ var nistAIRMF10 = []Control{
 		ID: "MEASURE 2.10", Function: FunctionMeasure, Category: "MEASURE 2",
 		Text:       "Privacy risk of the AI system – as identified in the map function – is examined and documented.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceSecrets},
-		Rationale: "Assay detects credentials and secrets embedded in the artifact. Training-data privacy, memorization, and re-identification risk require a separate privacy assessment.",
+		Rationale: "Cupel detects credentials and secrets embedded in the artifact. Training-data privacy, memorization, and re-identification risk require a separate privacy assessment.",
 	},
 	{
 		ID: "MEASURE 2.11", Function: FunctionMeasure, Category: "MEASURE 2",
@@ -418,7 +418,7 @@ var nistAIRMF10 = []Control{
 		ID: "MEASURE 3.2", Function: FunctionMeasure, Category: "MEASURE 3",
 		Text:       "Risk tracking approaches are considered for settings where AI risks are difficult to assess using currently available measurement techniques or where metrics are not yet available.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceCoverageGap},
-		Rationale: "Assay records what it could not measure, which is the input to this consideration. The consideration itself is organizational.",
+		Rationale: "Cupel records what it could not measure, which is the input to this consideration. The consideration itself is organizational.",
 	},
 	{
 		ID: "MEASURE 3.3", Function: FunctionMeasure, Category: "MEASURE 3",
@@ -446,7 +446,7 @@ var nistAIRMF10 = []Control{
 		ID: "MANAGE 1.1", Function: FunctionManage, Category: "MANAGE 1",
 		Text:       "A determination is made as to whether the AI system achieves its intended purposes and stated objectives and whether its development or deployment should proceed.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceVerdict},
-		Rationale: "The verdict is a recorded, enforced determination on whether deployment proceeds. Whether the model achieves its intended purpose is a TEVV question Assay does not answer.",
+		Rationale: "The verdict is a recorded, enforced determination on whether deployment proceeds. Whether the model achieves its intended purpose is a TEVV question Cupel does not answer.",
 	},
 	{
 		ID: "MANAGE 1.2", Function: FunctionManage, Category: "MANAGE 1",
@@ -464,7 +464,7 @@ var nistAIRMF10 = []Control{
 		ID: "MANAGE 1.4", Function: FunctionManage, Category: "MANAGE 1",
 		Text:       "Negative residual risks (defined as the sum of all unmitigated risks) to both downstream acquirers of AI systems and end users are documented.",
 		Automation: AutomationFull, Evidence: []EvidenceKind{EvidenceResidualRisk, EvidenceCoverageGap},
-		Rationale: "Waived policy violations are exactly the unmitigated risk set, and Assay records each with the reason it was accepted, by whom, and until when — alongside what was never measured.",
+		Rationale: "Waived policy violations are exactly the unmitigated risk set, and Cupel records each with the reason it was accepted, by whom, and until when — alongside what was never measured.",
 	},
 	{
 		ID: "MANAGE 2.1", Function: FunctionManage, Category: "MANAGE 2",
@@ -504,7 +504,7 @@ var nistAIRMF10 = []Control{
 		ID: "MANAGE 4.1", Function: FunctionManage, Category: "MANAGE 4",
 		Text:       "Post-deployment AI system monitoring plans are implemented, including mechanisms for capturing and evaluating input from users and other relevant AI actors, appeal and override, decommissioning, incident response, recovery, and change management.",
 		Automation: AutomationPartial, Evidence: []EvidenceKind{EvidenceScanHistory, EvidenceResidualRisk, EvidenceRevocation},
-		Rationale: "Assay provides the override path (exceptions), the decommissioning path (revocation), and continuous rescanning. User feedback capture and incident response are organizational.",
+		Rationale: "Cupel provides the override path (exceptions), the decommissioning path (revocation), and continuous rescanning. User feedback capture and incident response are organizational.",
 	},
 	{
 		ID: "MANAGE 4.2", Function: FunctionManage, Category: "MANAGE 4",

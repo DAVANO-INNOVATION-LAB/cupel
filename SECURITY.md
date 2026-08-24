@@ -25,7 +25,7 @@ bug bounty.
 
 ## What counts as a vulnerability here
 
-Assay is a security tool, which makes the boundary worth stating plainly.
+Cupel is a security tool, which makes the boundary worth stating plainly.
 
 **These are vulnerabilities. Please report them.**
 
@@ -36,7 +36,7 @@ Assay is a security tool, which makes the boundary worth stating plainly.
   has no verdict, a quarantined verdict, or a verdict belonging to different
   bytes.
 - Any path where a scan fails and the result reads as clean rather than as
-  failed. Assay is built to fail closed, and a fail-open path is the most
+  failed. Cupel is built to fail closed, and a fail-open path is the most
   serious class of bug this project has.
 - Reading findings, model names or any other data outside your role and tenant
   through the console API.
@@ -59,7 +59,7 @@ publicly.**
   a port-forward. That configuration is documented as a local convenience and
   warns at startup.
 - Anything requiring cluster-admin to exploit. If you already have cluster-admin
-  you do not need a vulnerability in Assay.
+  you do not need a vulnerability in Cupel.
 
 ## Supported versions
 
@@ -71,16 +71,16 @@ Images are published to `ghcr.io/davano-innovation-lab`. Pin by digest rather
 than tag if you care about what you are running:
 
 ```bash
-docker pull ghcr.io/davano-innovation-lab/assay-operator@sha256:<digest>
+docker pull ghcr.io/davano-innovation-lab/cupel-operator@sha256:<digest>
 ```
 
-Assay verifies signatures on the models it scans, and its own images are signed
+Cupel verifies signatures on the models it scans, and its own images are signed
 the same way. Signing is keyless, so there is no key to trust — the certificate
 names the repository and the workflow that built the image:
 
 ```bash
 cosign verify \
-  --certificate-identity-regexp '^https://github.com/DAVANO-INNOVATION-LAB/assay/' \
+  --certificate-identity-regexp '^https://github.com/DAVANO-INNOVATION-LAB/cupel/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  ghcr.io/davano-innovation-lab/assay-operator:0.2.4
+  ghcr.io/davano-innovation-lab/cupel-operator:0.2.4
 ```

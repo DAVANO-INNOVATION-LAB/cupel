@@ -53,7 +53,7 @@ func (c *Catalog) ByFunction(fn Function) []Control {
 	return out
 }
 
-// Automatable returns the controls Assay can evidence in full or in part.
+// Automatable returns the controls Cupel can evidence in full or in part.
 func (c *Catalog) Automatable() []Control {
 	var out []Control
 	for _, ctrl := range c.controls {
@@ -64,7 +64,7 @@ func (c *Catalog) Automatable() []Control {
 	return out
 }
 
-// Coverage summarizes how much of the framework Assay can evidence. It exists
+// Coverage summarizes how much of the framework Cupel can evidence. It exists
 // so the number can be stated plainly in a report rather than implied.
 type Coverage struct {
 	Total   int

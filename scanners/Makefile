@@ -1,4 +1,4 @@
-# Builds the Assay scanner images.
+# Builds the Cupel scanner images.
 #
 # Each image exposes the same contract: the entrypoint takes the staged
 # artifact directory and the output file as its two positional arguments.
@@ -15,7 +15,7 @@ CONTAINER_TOOL ?= docker
 BAKE_DB ?= true
 
 # Scanners that ship as their own image. model-inspector and provenance are
-# implemented by the Assay runner and ship in the operator image instead.
+# implemented by the Cupel runner and ship in the operator image instead.
 SCANNERS ?= clamav trivy syft trufflehog grype
 
 TARGETARCH := $(word 2,$(subst /, ,$(PLATFORM)))

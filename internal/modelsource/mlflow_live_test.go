@@ -1,7 +1,7 @@
 //go:build mlflow_live
 
 // This test drives a real MLflow tracking server in Docker end to end:
-// register a malicious pickle model, then run Assay's full source pipeline
+// register a malicious pickle model, then run Cupel's full source pipeline
 // (List -> Resolve -> inspect -> policy -> WriteBack) against it and assert the
 // version is Quarantined and the verdict is written back as an MLflow tag.
 //
@@ -22,14 +22,14 @@ import (
 	"testing"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/inspector"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/policy"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/inspector"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
 )
 
 const (
 	mlflowImage     = "ghcr.io/mlflow/mlflow:v2.19.0"
-	mlflowContainer = "assay-mlflow-live-test"
+	mlflowContainer = "cupel-mlflow-live-test"
 	mlflowPort      = "5077"
 	mlflowModelName = "fraud-detector"
 )

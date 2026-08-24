@@ -11,13 +11,13 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: assay-api
-  namespace: assay-system
+  name: cupel-api
+  namespace: cupel-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: assay-api
+  name: cupel-api
 rules:
   # Read the posture. Cluster-scoped because a security team's remit usually
   # is; which namespaces a given login may actually see is decided per request
@@ -52,12 +52,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: assay-api
+  name: cupel-api
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: assay-api
+  name: cupel-api
 subjects:
   - kind: ServiceAccount
-    name: assay-api
-    namespace: assay-system
+    name: cupel-api
+    namespace: cupel-system

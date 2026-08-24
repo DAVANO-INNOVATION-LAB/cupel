@@ -1,6 +1,6 @@
 # Compliance
 
-Assay produces evidence. It does not produce compliance.
+Cupel produces evidence. It does not produce compliance.
 
 That distinction is the whole of this page. A control is satisfied by a system,
 assessed by a person, inside a documented boundary. A scanner is one input to
@@ -8,7 +8,7 @@ that assessment. Any vendor telling you their tool "makes you compliant with
 X" is describing a conversation with an authorizing official that has not
 happened yet.
 
-What Assay does is make the evidence for a specific slice — the model artifact
+What Cupel does is make the evidence for a specific slice — the model artifact
 layer — machine-generated, portable, and checkable by someone who does not
 trust the party that produced it.
 
@@ -27,9 +27,9 @@ Tailoring Guide** (DoD CIO, v2, July 2025) is the operational companion: it
 maps MITRE ATLAS threat vectors onto CNSSI 1253 and NIST SP 800-53 controls,
 and separates an *infrastructure layer* from a *model layer*.
 
-Assay works the model layer.
+Cupel works the model layer.
 
-## What Assay maps to
+## What Cupel maps to
 
 | Framework | Where |
 |---|---|
@@ -42,7 +42,7 @@ across. What it adds is the National Security Systems categorization and
 overlay — which controls apply at which impact level. That is a system
 decision and no tool can make it for you.
 
-### The controls Assay fits best
+### The controls Cupel fits best
 
 - **CM-14 Signed Components** — the closest fit in the catalogue to what the
   admission gate does. `TrustedPublisher` is the organization's list of
@@ -61,7 +61,7 @@ decision and no tool can make it for you.
 
 ### The gaps, stated because an assessor will find them
 
-- **SA-11 Developer Testing and Evaluation** — Assay assesses an artifact it is
+- **SA-11 Developer Testing and Evaluation** — Cupel assesses an artifact it is
   handed. Whether the party that built the model tested it is not observable,
   and third-party models almost never come with an answer.
 - **AU-9 Protection of Audit Information** — the audit chain makes tampering
@@ -80,7 +80,7 @@ decision and no tool can make it for you.
 The artefact an authorizing official can actually use:
 
 ```bash
-assay-runner verify-evidence bundle.json
+cupel-runner verify-evidence bundle.json
 ```
 
 ```
@@ -116,7 +116,7 @@ Exit codes: `0` intact, `4` does not verify, `1` unreadable.
 
 ## For an assessment
 
-Assay contributes to a body of evidence. Expect to also show:
+Cupel contributes to a body of evidence. Expect to also show:
 
 - The organizational controls in the AI RMF mapping — most of the 72
   subcategories are policy and process, and are marked unobservable for that

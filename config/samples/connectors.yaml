@@ -13,7 +13,7 @@
 # MLflow, unauthenticated — the shape for a local or in-cluster tracking server.
 #
 # This is the quickest thing to try: run MLflow, register a model, and watch a
-# verdict appear as assay.verdict / assay.risk_score tags on the version.
+# verdict appear as cupel.verdict / cupel.risk_score tags on the version.
 #
 #   docker run -d -p 5000:5000 ghcr.io/mlflow/mlflow:v2.19.0 \
 #     mlflow server --host 0.0.0.0 --serve-artifacts \
@@ -27,7 +27,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ModelRegistryConnector
 metadata:
   name: mlflow-local
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   type: MLflow
   registryURL: http://mlflow.mlflow.svc.cluster.local:5000
@@ -52,12 +52,12 @@ spec:
 # ever put in the connector itself.
 #
 #   kubectl create secret generic mlflow-token \
-#     --from-literal=token='<your token>' -n assay-system
+#     --from-literal=token='<your token>' -n cupel-system
 apiVersion: security.davano.io/v1alpha1
 kind: ModelRegistryConnector
 metadata:
   name: mlflow-authenticated
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   type: MLflow
   registryURL: https://mlflow.example.internal
@@ -68,14 +68,14 @@ spec:
     key: token
 
   # Only these models. Globs, matched against the registered model name —
-  # useful when one registry serves several teams and you are rolling Assay
+  # useful when one registry serves several teams and you are rolling Cupel
   # out to one of them first.
   includeModels:
     - "fraud-*"
     - "risk-scoring"
 
 ---
-# OpenShift AI / Kubeflow Model Registry — the platform Assay was built around.
+# OpenShift AI / Kubeflow Model Registry — the platform Cupel was built around.
 #
 # NOTE: this path has not been run against a live Model Registry. In
 # particular, the connector treats a model artifact's storageKey as an S3
@@ -86,7 +86,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ModelRegistryConnector
 metadata:
   name: openshift-ai
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   type: KubeflowModelRegistry
   registryURL: https://modelregistry-sample.rhoai-model-registries.svc.cluster.local:8080
@@ -114,7 +114,7 @@ apiVersion: security.davano.io/v1alpha1
 kind: ArtifactScanPolicy
 metadata:
   name: inspector-only
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   scanners:
     - name: model-inspector

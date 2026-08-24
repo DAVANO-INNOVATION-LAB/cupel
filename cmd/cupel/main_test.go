@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/inspector"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/policy"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/resolver"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/inspector"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/resolver"
 	"time"
 )
 
@@ -84,7 +84,7 @@ func TestJSONOutputShape(t *testing.T) {
 	if err := json.Unmarshal(data, &round); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"verdict", "riskScore", "severities", "findings", "assayVersion"} {
+	for _, key := range []string{"verdict", "riskScore", "severities", "findings", "cupelVersion"} {
 		if _, ok := round[key]; !ok {
 			t.Errorf("JSON output missing %q field", key)
 		}

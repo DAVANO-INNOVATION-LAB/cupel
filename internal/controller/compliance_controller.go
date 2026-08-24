@@ -13,10 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/compliance"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/naming"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/scanners"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/compliance"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 // ComplianceReconciler assesses each scanned model version against the

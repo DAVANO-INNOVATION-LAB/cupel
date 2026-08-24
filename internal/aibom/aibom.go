@@ -11,7 +11,7 @@
 // the *packages* around a model; this describes the model itself — its
 // parameters, precision, tensor shapes, licence, declared lineage, and the
 // per-file hashes that pin those claims to bytes. The two are complementary
-// and Assay keeps them as separate categories so a policy can require either.
+// and Cupel keeps them as separate categories so a policy can require either.
 //
 // The findings it returns include drift: places where the model's sidecar
 // declarations disagree with the weights they describe. A config advertising a
@@ -33,7 +33,7 @@ import (
 
 	"github.com/DAVANO-INNOVATION-LAB/tessera"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 )
 
 // Finding IDs this package emits in its own right. Everything else in a report
@@ -41,12 +41,12 @@ import (
 const (
 	// FindingNoModel means nothing in the workspace was a model format the
 	// analyser understands, so no bill of materials was produced.
-	FindingNoModel = "ASSAY-AIBOM-001"
+	FindingNoModel = "cupel-AIBOM-001"
 	// FindingPartial means more than one model was staged and only the
 	// primary one is described.
-	FindingPartial = "ASSAY-AIBOM-002"
+	FindingPartial = "cupel-AIBOM-002"
 	// FindingUnparsed means a model file was found and could not be read.
-	FindingUnparsed = "ASSAY-AIBOM-003"
+	FindingUnparsed = "cupel-AIBOM-003"
 )
 
 // Category is the finding category an AIBOM finding carries when the analysis
@@ -64,7 +64,7 @@ const CategoryDrift = "drift"
 // a hostile archive is the kind of thing this scanner exists to report.
 const maxSearchDepth = 6
 
-// Report is what the runner writes out: the findings in Assay's shape, plus
+// Report is what the runner writes out: the findings in Cupel's shape, plus
 // the rendered documents and enough of the description to be read directly.
 type Report struct {
 	Findings []securityv1alpha1.Finding `json:"findings"`
@@ -262,7 +262,7 @@ func analyzeOptions(opts Options) []tessera.Option {
 	return out
 }
 
-// translate carries analysis findings into Assay's vocabulary.
+// translate carries analysis findings into Cupel's vocabulary.
 //
 // The two Finding shapes are field-identical, so this copies rather than
 // converts. What it does add is the category and a workspace-relative location,
@@ -278,7 +278,7 @@ func translate(findings []tessera.Finding, modelPath string) []securityv1alpha1.
 		} else if !filepath.IsAbs(loc) && dir != "." && dir != "" {
 			loc = filepath.Join(dir, loc)
 		}
-		// The analyser's own category is preserved. Assay's policy engine
+		// The analyser's own category is preserved. Cupel's policy engine
 		// buckets whole scanners by category, so this field is free to carry
 		// the finer distinction — and CategoryDrift is the one the drift gate
 		// counts on. Falling back to the scanner's own category keeps every

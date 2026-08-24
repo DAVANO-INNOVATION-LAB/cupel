@@ -1,5 +1,5 @@
 {{/* Chart name, overridable. */}}
-{{- define "assay.name" -}}
+{{- define "cupel.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -7,11 +7,11 @@
 Fully qualified name for namespaced resources.
 
 Cluster-scoped resources (ClusterRole, ValidatingWebhookConfiguration) keep
-fixed names instead: Assay owns cluster-wide CRDs and one admission gate, so a
+fixed names instead: Cupel owns cluster-wide CRDs and one admission gate, so a
 second release in the same cluster would fight the first regardless of naming.
 One install per cluster is the supported shape.
 */}}
-{{- define "assay.fullname" -}}
+{{- define "cupel.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -24,9 +24,9 @@ One install per cluster is the supported shape.
 {{- end -}}
 {{- end -}}
 
-{{- define "assay.labels" -}}
+{{- define "cupel.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
-app.kubernetes.io/name: assay-model-scanner
+app.kubernetes.io/name: cupel-model-scanner
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
@@ -35,21 +35,21 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{/* Selector labels must match the existing manifests so a migration is a no-op. */}}
-{{- define "assay.selectorLabels" -}}
-app.kubernetes.io/name: assay-model-scanner
+{{- define "cupel.selectorLabels" -}}
+app.kubernetes.io/name: cupel-model-scanner
 app.kubernetes.io/component: controller
 {{- end -}}
 
-{{- define "assay.image" -}}
+{{- define "cupel.image" -}}
 {{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) -}}
 {{- end -}}
 
-{{- define "assay.webhookServiceName" -}}
-{{- printf "%s-webhook" (include "assay.fullname" .) -}}
+{{- define "cupel.webhookServiceName" -}}
+{{- printf "%s-webhook" (include "cupel.fullname" .) -}}
 {{- end -}}
 
 {{/* Fail early on a cert mode that cannot produce a verifiable webhook. */}}
-{{- define "assay.validateCertMode" -}}
+{{- define "cupel.validateCertMode" -}}
 {{- $m := .Values.webhook.certMode -}}
 {{- if not (has $m (list "openshift" "cert-manager" "external")) -}}
 {{- fail (printf "webhook.certMode must be one of openshift, cert-manager, external (got %q)" $m) -}}

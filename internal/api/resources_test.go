@@ -14,8 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/authz"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
 )
 
 func resourceScheme(t *testing.T) *runtime.Scheme {
@@ -35,7 +35,7 @@ func resourceScheme(t *testing.T) *runtime.Scheme {
 func serverFor(t *testing.T, objs ...client.Object) *Server {
 	t.Helper()
 	c := fake.NewClientBuilder().WithScheme(resourceScheme(t)).WithObjects(objs...).Build()
-	return &Server{k8s: c, cfg: Config{Namespace: "assay-system"}}
+	return &Server{k8s: c, cfg: Config{Namespace: "cupel-system"}}
 }
 
 func subjectWith(role authz.Role, namespaces ...string) authz.Subject {
@@ -94,7 +94,7 @@ func TestConnectorsAreScopedToTenants(t *testing.T) {
 // A credential reference is an operational detail. The console needs to know
 // one exists, not which secret it is.
 func TestConnectorNeverExposesTheSecretName(t *testing.T) {
-	c := connector("mine", "assay-system")
+	c := connector("mine", "cupel-system")
 	c.Spec.AuthSecretRef = &securityv1alpha1.SecretKeyRef{Name: "mlflow-token", Key: "token"}
 	s := serverFor(t, c)
 
@@ -142,7 +142,7 @@ func TestCreatingASourceRecordsWhoDidIt(t *testing.T) {
 	}
 
 	var got securityv1alpha1.ModelRegistryConnector
-	key := client.ObjectKey{Name: "src", Namespace: "assay-system"}
+	key := client.ObjectKey{Name: "src", Namespace: "cupel-system"}
 	if err := s.k8s.Get(context.Background(), key, &got); err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestConnectorRequestHasNoTokenField(t *testing.T) {
 	}
 
 	var got securityv1alpha1.ModelRegistryConnector
-	key := client.ObjectKey{Name: "src", Namespace: "assay-system"}
+	key := client.ObjectKey{Name: "src", Namespace: "cupel-system"}
 	if err := s.k8s.Get(context.Background(), key, &got); err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestScansAreScopedToTenants(t *testing.T) {
 // like a clean result.
 func TestUnscoredScanIsNotReportedAsZero(t *testing.T) {
 	scan := &securityv1alpha1.ArtifactScan{
-		ObjectMeta: metav1.ObjectMeta{Name: "running", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "running", Namespace: "cupel-system"},
 		Spec:       securityv1alpha1.ArtifactScanSpec{ModelName: "m", ModelVersion: "1"},
 		Status:     securityv1alpha1.ArtifactScanStatus{Phase: "Scanning"},
 	}
@@ -269,7 +269,7 @@ func TestExceptionsRequireFindingAccess(t *testing.T) {
 // unsigned, not smoothed into looking attributed.
 func TestUnsignedExceptionIsMarkedUnsigned(t *testing.T) {
 	e := &securityv1alpha1.ArtifactException{
-		ObjectMeta: metav1.ObjectMeta{Name: "waiver", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "waiver", Namespace: "cupel-system"},
 		Spec: securityv1alpha1.ArtifactExceptionSpec{
 			ModelName: "m", ModelVersion: "1", Reason: "reviewed",
 		},

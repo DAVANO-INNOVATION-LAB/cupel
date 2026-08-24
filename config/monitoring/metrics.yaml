@@ -1,20 +1,20 @@
-# Assay's metrics are the only way to tell a working gate from one that is
-# failing open: assay_admission_decisions_total{outcome="allowed_unscanned"}
+# Cupel's metrics are the only way to tell a working gate from one that is
+# failing open: cupel_admission_decisions_total{outcome="allowed_unscanned"}
 # counts workloads admitted purely because nothing had scanned them. Without a
 # Service nothing can scrape that, so the numbers exist and no one sees them.
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: assay-controller-manager-metrics
-  namespace: assay-system
+  name: cupel-controller-manager-metrics
+  namespace: cupel-system
   labels:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
     app.kubernetes.io/component: metrics
 spec:
   # Must match the Deployment's pod labels in config/manager/manager.yaml.
   selector:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
     app.kubernetes.io/component: controller
   ports:
     - name: metrics
@@ -28,14 +28,14 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: assay-controller-manager
-  namespace: assay-system
+  name: cupel-controller-manager
+  namespace: cupel-system
   labels:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: assay-model-scanner
+      app.kubernetes.io/name: cupel-model-scanner
       app.kubernetes.io/component: metrics
   endpoints:
     - port: metrics
@@ -47,48 +47,48 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: assay-gate-health
-  namespace: assay-system
+  name: cupel-gate-health
+  namespace: cupel-system
   labels:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
 spec:
   groups:
-    - name: assay.gate
+    - name: cupel.gate
       rules:
-        - alert: AssayAdmittingUnscannedModels
+        - alert: CupelAdmittingUnscannedModels
           # Not necessarily a fault: --require-report=false is the shipped
           # default, so this fires when coverage is incomplete. That is the
           # point — silence here should mean "everything is scanned", not
           # "nobody is looking".
           expr: |
-            sum(rate(assay_admission_decisions_total{outcome="allowed_unscanned"}[15m])) > 0
+            sum(rate(cupel_admission_decisions_total{outcome="allowed_unscanned"}[15m])) > 0
           for: 15m
           labels:
             severity: warning
           annotations:
-            summary: Assay is admitting models it has never scanned
+            summary: Cupel is admitting models it has never scanned
             description: >-
               Workloads are being admitted because no ModelSecurityReport exists
-              for them. Assay is not gating these deployments. Check connector
+              for them. Cupel is not gating these deployments. Check connector
               sync and scan completion before assuming models are clean.
 
-        - alert: AssayGateBypassedByAnnotation
+        - alert: CupelGateBypassedByAnnotation
           expr: |
-            sum(rate(assay_admission_decisions_total{outcome="allowed_skip_annotation"}[1h])) > 0
+            sum(rate(cupel_admission_decisions_total{outcome="allowed_skip_annotation"}[1h])) > 0
           for: 30m
           labels:
             severity: warning
           annotations:
-            summary: Workloads are skipping Assay validation by annotation
+            summary: Workloads are skipping Cupel validation by annotation
             description: >-
               The security.davano.io/skip-validation annotation is in use. Anyone
               who can set it on their own workload bypasses the gate entirely.
 
-        - alert: AssayScannerErroring
+        - alert: CupelScannerErroring
           # A scanner that errors on everything contributes no findings, and an
           # artifact with no findings scores as clean.
           expr: |
-            sum by (scanner) (rate(assay_scanner_results_total{status="Error"}[30m])) > 0
+            sum by (scanner) (rate(cupel_scanner_results_total{status="Error"}[30m])) > 0
           for: 30m
           labels:
             severity: critical
@@ -98,14 +98,14 @@ spec:
               A failing scanner produces no findings, which is scored the same as
               a clean result for that dimension.
 
-        - alert: AssaySourceSyncFailing
+        - alert: CupelSourceSyncFailing
           expr: |
-            sum by (source) (rate(assay_source_sync_failures_total[15m])) > 0
+            sum by (source) (rate(cupel_source_sync_failures_total[15m])) > 0
           for: 15m
           labels:
             severity: warning
           annotations:
-            summary: "Assay cannot sync model source {{ $labels.source }}"
+            summary: "Cupel cannot sync model source {{ $labels.source }}"
             description: >-
               New model versions are not being discovered, so they will deploy
               as unscanned.

@@ -1,11 +1,11 @@
-// Command runner is the in-pod half of Assay. Scan Jobs invoke it three ways:
+// Command runner is the in-pod half of Cupel. Scan Jobs invoke it three ways:
 //
 //	fetch    resolve an artifact URI and stage the bytes into the workspace
 //	inspect  run the built-in model-format scanner over the workspace
 //	aibom    describe the model itself and render its bill of materials
 //	publish  parse a scanner's output and record an ArtifactScanReport
 //
-// Keeping these in one binary means the scan pod only needs the Assay image
+// Keeping these in one binary means the scan pod only needs the Cupel image
 // plus the scanner image, and only the publish step ever holds cluster
 // credentials.
 package main
@@ -28,17 +28,17 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/aibom"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/compliance"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/controller"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/evidence"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/inspector"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/naming"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/provenance"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/resolver"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/results"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/aibom"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/compliance"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/controller"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/evidence"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/inspector"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/provenance"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/resolver"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/results"
 )
 
 func main() {
@@ -76,22 +76,22 @@ func main() {
 	}
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "assay-runner %s: %v\n", os.Args[1], err)
+		fmt.Fprintf(os.Stderr, "cupel-runner %s: %v\n", os.Args[1], err)
 		os.Exit(1)
 	}
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `assay-runner - in-pod scan steps for Assay
+	fmt.Fprint(os.Stderr, `cupel-runner - in-pod scan steps for Cupel
 
 Usage:
-  assay-runner fetch   --uri URI --dest DIR [--metadata FILE]
-  assay-runner inspect --workspace DIR --out FILE
-  assay-runner publish --scan NAME --namespace NS --scanner NAME --format FMT --results FILE [--metadata FILE]
-  assay-runner verify-provenance --workspace DIR --out FILE
-  assay-runner aibom   --workspace DIR --out FILE [--bom-dir DIR]
-  assay-runner evidence --scan NAME --namespace NS [--out FILE]
-  assay-runner verify-evidence FILE
+  cupel-runner fetch   --uri URI --dest DIR [--metadata FILE]
+  cupel-runner inspect --workspace DIR --out FILE
+  cupel-runner publish --scan NAME --namespace NS --scanner NAME --format FMT --results FILE [--metadata FILE]
+  cupel-runner verify-provenance --workspace DIR --out FILE
+  cupel-runner aibom   --workspace DIR --out FILE [--bom-dir DIR]
+  cupel-runner evidence --scan NAME --namespace NS [--out FILE]
+  cupel-runner verify-evidence FILE
 
 verify-evidence exit codes: 0 the bundle is intact, 4 it is not, 1 it could not be read.
 `)
@@ -548,7 +548,7 @@ func runBuildEvidence(ctx context.Context, args []string) error {
 	scanName := fs.String("scan", "", "ArtifactScan to build a bundle for")
 	namespace := fs.String("namespace", os.Getenv("POD_NAMESPACE"), "namespace of the scan")
 	out := fs.String("out", "", "write the bundle here; default stdout")
-	producer := fs.String("producer", "assay", "identifier recorded as the producer")
+	producer := fs.String("producer", "tessera", "identifier recorded as the producer")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

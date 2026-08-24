@@ -11,11 +11,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/naming"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
 )
 
-const promoNS = "assay-system"
+const promoNS = "cupel-system"
 
 func promoReport(verdict string) *securityv1alpha1.ModelSecurityReport {
 	return &securityv1alpha1.ModelSecurityReport{
@@ -176,7 +176,7 @@ func TestPromotingDoesNotDisplaceAnotherEnvironment(t *testing.T) {
 }
 
 // Every terminal decision reaches the tamper-evident chain. The AI RMF mapping
-// cites promotion as a human-in-the-loop step Assay records; before this
+// cites promotion as a human-in-the-loop step Cupel records; before this
 // controller existed that was a claim with nothing behind it.
 func TestPromotionIsRecordedInTheAuditChain(t *testing.T) {
 	_, c := reconcilePromotion(t,

@@ -4,22 +4,22 @@ import (
 	"fmt"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 )
 
-// Property keys Assay writes back into the Model Registry. They are namespaced
+// Property keys Cupel writes back into the Model Registry. They are namespaced
 // so they never collide with user-defined properties.
 const (
-	PropVerdict      = "assay.security/verdict"
-	PropRiskScore    = "assay.security/risk-score"
-	PropMalware      = "assay.security/malware"
-	PropSecrets      = "assay.security/secrets"
-	PropCVECritical  = "assay.security/cve-critical"
-	PropCVEHigh      = "assay.security/cve-high"
-	PropSigned       = "assay.security/signature-verified"
-	PropLastScan     = "assay.security/last-scan"
-	PropReportRef    = "assay.security/report"
-	PropScannerCount = "assay.security/scanners-run"
+	PropVerdict      = "cupel.security/verdict"
+	PropRiskScore    = "cupel.security/risk-score"
+	PropMalware      = "cupel.security/malware"
+	PropSecrets      = "cupel.security/secrets"
+	PropCVECritical  = "cupel.security/cve-critical"
+	PropCVEHigh      = "cupel.security/cve-high"
+	PropSigned       = "cupel.security/signature-verified"
+	PropLastScan     = "cupel.security/last-scan"
+	PropReportRef    = "cupel.security/report"
+	PropScannerCount = "cupel.security/scanners-run"
 )
 
 // SummaryProperties renders a ModelSecurityReport as registry custom

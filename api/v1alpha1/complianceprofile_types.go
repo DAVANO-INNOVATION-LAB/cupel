@@ -40,13 +40,13 @@ type ControlExclusion struct {
 	// ControlID to exclude.
 	ControlID string `json:"controlID"`
 	// Justification for the exclusion. Required — an unexplained exclusion
-	// is indistinguishable from an oversight, so Assay rejects it.
+	// is indistinguishable from an oversight, so Cupel rejects it.
 	// +kubebuilder:validation:MinLength=1
 	Justification string `json:"justification"`
 }
 
 // ComplianceProfileSpec declares a governance framework to report against and
-// carries the organizational attestations Assay cannot produce itself.
+// carries the organizational attestations Cupel cannot produce itself.
 type ComplianceProfileSpec struct {
 	// Framework to assess against.
 	// +kubebuilder:validation:Enum=nist-ai-rmf-1.0

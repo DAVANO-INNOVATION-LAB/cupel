@@ -8,13 +8,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/scanners"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 func testScan() *securityv1alpha1.ArtifactScan {
 	return &securityv1alpha1.ArtifactScan{
-		ObjectMeta: metav1.ObjectMeta{Name: "scan-fraud-v1", Namespace: "assay-system"},
+		ObjectMeta: metav1.ObjectMeta{Name: "scan-fraud-v1", Namespace: "cupel-system"},
 		Spec: securityv1alpha1.ArtifactScanSpec{
 			ModelName:    "fraud",
 			ModelVersion: "v1",
@@ -25,9 +25,9 @@ func testScan() *securityv1alpha1.ArtifactScan {
 
 func testJobConfig() JobConfig {
 	return JobConfig{
-		OperatorImage:   "docker.io/davanolab/assay-operator:0.1.0",
-		ScannerRegistry: "registry.internal/assay",
-		ServiceAccount:  "assay-scanner",
+		OperatorImage:   "docker.io/davanolab/cupel-operator:0.1.0",
+		ScannerRegistry: "registry.internal/cupel",
+		ServiceAccount:  "cupel-scanner",
 		WorkspaceSize:   resource.MustParse("50Gi"),
 	}
 }
@@ -68,7 +68,7 @@ func TestScanPodStepOrdering(t *testing.T) {
 func TestScannerImageResolvesAgainstConfiguredRegistry(t *testing.T) {
 	pod, _ := buildFor(t, "trivy")
 
-	want := "registry.internal/assay/scanner-trivy:" + scanners.ImageTag
+	want := "registry.internal/cupel/scanner-trivy:" + scanners.ImageTag
 	if got := pod.InitContainers[1].Image; got != want {
 		t.Errorf("scan image = %q, want %q", got, want)
 	}
@@ -196,7 +196,7 @@ func TestScanContainerHasWritableTmp(t *testing.T) {
 func TestOnlyPublishCarriesClusterCredentials(t *testing.T) {
 	pod, _ := buildFor(t, "clamav")
 
-	if pod.ServiceAccountName != "assay-scanner" {
+	if pod.ServiceAccountName != "cupel-scanner" {
 		t.Errorf("service account = %q, want the restricted scanner account", pod.ServiceAccountName)
 	}
 

@@ -4,7 +4,7 @@ metadata:
   name: {{ .Values.serviceAccount.name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
     app.kubernetes.io/component: controller
   {{- with .Values.serviceAccount.annotations }}
   annotations:
@@ -17,22 +17,22 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: assay-manager-role
+  name: cupel-manager-role
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
 rules:
 {{ .Files.Get "rbac-rules.yaml" | indent 0 }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: assay-manager-rolebinding
+  name: cupel-manager-rolebinding
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: assay-manager-role
+  name: cupel-manager-role
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.serviceAccount.name }}
@@ -41,10 +41,10 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "assay.fullname" . }}-leader-election
+  name: {{ include "cupel.fullname" . }}-leader-election
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
@@ -56,14 +56,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "assay.fullname" . }}-leader-election
+  name: {{ include "cupel.fullname" . }}-leader-election
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "assay.fullname" . }}-leader-election
+  name: {{ include "cupel.fullname" . }}-leader-election
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.serviceAccount.name }}

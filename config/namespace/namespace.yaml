@@ -1,13 +1,13 @@
 # Applied before everything else: the ServiceAccounts, Deployment, and webhook
 # all land in this namespace, so creating it alongside them made a fresh-cluster
-# `make deploy` fail with "namespaces \"assay-system\" not found".
+# `make deploy` fail with "namespaces \"cupel-system\" not found".
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: assay-system
+  name: cupel-system
   labels:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
     # Scan pods run hardened (non-root, no capabilities, read-only root), so
     # the namespace can enforce the restricted profile outright.
     pod-security.kubernetes.io/enforce: restricted

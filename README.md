@@ -1,12 +1,12 @@
-# Assay
+# Cupel
 
-[![CI](https://github.com/DAVANO-INNOVATION-LAB/assay/actions/workflows/ci.yml/badge.svg)](https://github.com/DAVANO-INNOVATION-LAB/assay/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/DAVANO-INNOVATION-LAB/assay.svg)](https://pkg.go.dev/github.com/DAVANO-INNOVATION-LAB/assay)
+[![CI](https://github.com/DAVANO-INNOVATION-LAB/cupel/actions/workflows/ci.yml/badge.svg)](https://github.com/DAVANO-INNOVATION-LAB/cupel/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/DAVANO-INNOVATION-LAB/cupel.svg)](https://pkg.go.dev/github.com/DAVANO-INNOVATION-LAB/cupel)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **A model with a backdoor in it looks exactly like a model without one.**
 
-Assay is model supply-chain security for Kubernetes. It scans every version a
+Cupel is model supply-chain security for Kubernetes. It scans every version a
 model registry publishes, records a verdict, and refuses to let an unapproved
 model reach a running workload.
 
@@ -15,7 +15,7 @@ k3s, OpenShift — and uses no vendor-specific API objects. The command-line too
 needs no cluster at all: it is a static Linux or macOS binary that scans a model
 wherever you have one.
 
-## Assay and Tessera
+## Cupel and Tessera
 
 Two projects, one engine, and the split is deliberate.
 
@@ -24,37 +24,37 @@ artifact. It opens GGUF, safetensors and ONNX, walks what sits beside them, and
 emits a bill of materials. It runs anywhere — a laptop, a CI job, one container,
 an air-gapped enclave — with no third-party dependencies in its core.
 
-**Assay** runs Tessera at fleet scale and enforces the result. Controllers,
+**Cupel** runs Tessera at fleet scale and enforces the result. Controllers,
 scheduled rescanning, promotion between environments, a tamper-evident decision
 log, and an admission webhook. That last one is the thing a command-line tool
 cannot do: a CLI can report, but only something inside the cluster can stop a
 Pod from starting.
 
-Assay imports Tessera. Tessera does not know Assay exists.
+Cupel imports Tessera. Tessera does not know Cupel exists.
 
 **Use Tessera if** you want to inspect or document a model.
-**Add Assay if** you need the answer enforced across a cluster.
+**Add Cupel if** you need the answer enforced across a cluster.
 
 ## Install
 
 The CLI is a single static binary and needs no cluster:
 
 ```bash
-go install github.com/DAVANO-INNOVATION-LAB/assay/cmd/assay@latest
+go install github.com/DAVANO-INNOVATION-LAB/cupel/cmd/cupel@latest
 ```
 
 Prebuilt binaries for Linux and macOS, amd64 and arm64, are on the
-[releases page](https://github.com/DAVANO-INNOVATION-LAB/assay/releases).
+[releases page](https://github.com/DAVANO-INNOVATION-LAB/cupel/releases).
 
 The operator installs from the chart. The one setting that depends on your
 cluster is how the admission webhook gets its serving certificate:
 
 ```bash
 # Default: cert-manager issues and rotates it. Works on any cluster.
-helm install assay deploy/helm/assay -n assay-system --create-namespace
+helm install cupel deploy/helm/cupel -n cupel-system --create-namespace
 
 # OpenShift: the service CA operator does it, with no extra component
-helm install assay deploy/helm/assay -n assay-system --create-namespace \
+helm install cupel deploy/helm/cupel -n cupel-system --create-namespace \
   --set webhook.certMode=openshift
 
 # Or bring your own Secret and CA bundle
@@ -69,9 +69,9 @@ be verified is silently skipped, which looks exactly like a working gate.
 Scan a model from anywhere:
 
 ```bash
-assay inspect ./model-dir
-assay inspect hf://openai-community/gpt2
-assay inspect s3://bucket/models/fraud-detect
+cupel inspect ./model-dir
+cupel inspect hf://openai-community/gpt2
+cupel inspect s3://bucket/models/fraud-detect
 ```
 
 ```
@@ -84,7 +84,7 @@ assay inspect s3://bucket/models/fraud-detect
   verdict:  Approved (risk score 0/100)
 ```
 
-Note what that says. gpt2's pickle weights *can* execute code, and Assay reports
+Note what that says. gpt2's pickle weights *can* execute code, and Cupel reports
 it — at Low, and still approves the model, because that is true of every pickle
 ever shipped and is not a defect in this one. A scanner that raises an alarm on
 the ordinary case is a scanner people switch off. It also reports that one file
@@ -92,14 +92,14 @@ was read header-only, because what was *not* examined is part of a verdict.
 
 ## In a cluster
 
-Point Assay at a model registry and it does the rest:
+Point Cupel at a model registry and it does the rest:
 
 ```yaml
 apiVersion: security.davano.io/v1alpha1
 kind: ModelRegistryConnector
 metadata:
   name: model-registry
-  namespace: assay-system
+  namespace: cupel-system
 spec:
   endpoint: https://model-registry.example.com
   pollInterval: 5m
@@ -113,7 +113,7 @@ Promotion is explicit. A version approved for `dev` is not approved for `prod`
 until a `PromotionRequest` says so, and the gate refuses a workload that
 declares an environment the version was never promoted to.
 
-![The Assay console](docs/images/console-scan.png)
+![The Cupel console](docs/images/console-scan.png)
 
 ## What it covers
 
@@ -126,7 +126,7 @@ declares an environment the version was never promoted to.
 | Signing | Sigstore verification against declared trusted publishers |
 
 Its limits are documented rather than implied. A model poisoned in its *weights*
-is byte-identical to a clean one, and no static scanner can see it — so Assay
+is byte-identical to a clean one, and no static scanner can see it — so Cupel
 says so, in [SECURITY.md](SECURITY.md) and in the
 [MITRE ATLAS coverage map](internal/compliance/atlas.go), instead of letting
 silence imply coverage.

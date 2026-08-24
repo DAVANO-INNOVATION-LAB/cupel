@@ -23,20 +23,20 @@ import (
 	"sort"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/compliance"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/compliance"
 )
 
 // BundleVersion is the schema version of the bundle format.
-const BundleVersion = "assay-evidence/v1"
+const BundleVersion = "cupel-evidence/v1"
 
 // Bundle is a self-contained record for one model version.
 type Bundle struct {
 	Schema string `json:"schema"`
 	// GeneratedAt is when the bundle was assembled.
 	GeneratedAt time.Time `json:"generatedAt"`
-	// Producer identifies the Assay build that made it.
+	// Producer identifies the Cupel build that made it.
 	Producer string `json:"producer"`
 
 	Subject Subject `json:"subject"`

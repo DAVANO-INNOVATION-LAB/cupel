@@ -2,14 +2,14 @@
 
 ## Before anything else
 
-If you have found a way to make Assay report something as safe when it is not,
+If you have found a way to make Cupel report something as safe when it is not,
 that is a security report, not an issue. See [SECURITY.md](SECURITY.md).
 
 ## Getting a working checkout
 
 ```bash
-git clone https://github.com/DAVANO-INNOVATION-LAB/assay
-cd assay
+git clone https://github.com/DAVANO-INNOVATION-LAB/cupel
+cd cupel
 make test          # unit suite, race-enabled
 make lint          # go vet plus golangci-lint
 make build         # binaries into bin/
@@ -50,7 +50,7 @@ rescan is. Either way there is no age to measure.` is why the next person does
 not delete the nil check.
 
 **Don't claim coverage you do not have.** The ATLAS mapping in
-`internal/compliance/atlas.go` deliberately lists techniques Assay cannot detect,
+`internal/compliance/atlas.go` deliberately lists techniques Cupel cannot detect,
 with the reason. Adding a technique to the detected list requires the detection
 to exist. There are tests that fail if weight-level poisoning is ever marked as
 covered.
@@ -75,7 +75,7 @@ file. See `internal/scanners/catalog.go` for the definition shape and
 A scanner needs:
 
 1. An entry in the catalog with its category and result format.
-2. A parser in `internal/results/` if it does not emit Assay's native JSON.
+2. A parser in `internal/results/` if it does not emit Cupel's native JSON.
 3. An image under `scanners/`, with its vulnerability database baked in — scan
    Jobs run with networking disabled, and a scanner that needs to phone home
    will fail on an air-gapped cluster.

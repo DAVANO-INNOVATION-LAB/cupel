@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/registry"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/resolver"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/registry"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/resolver"
 )
 
 // ModelRegistry is a Source backed by the OpenShift AI Model Registry. It
 // exists to prove the Source interface is not MLflow-shaped: the same three
-// operations map cleanly onto the registry Assay was built around.
+// operations map cleanly onto the registry Cupel was built around.
 //
 // The in-cluster connector controller drives write-back from a full
 // ModelSecurityReport; this adapter is the cluster-free path (used by the CLI

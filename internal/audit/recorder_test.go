@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 )
 
 // testScheme builds the scheme both helpers need.
@@ -36,7 +36,7 @@ func testRecorder(t *testing.T) *Recorder {
 	}
 	return &Recorder{
 		Client:    fake.NewClientBuilder().WithScheme(scheme).Build(),
-		Namespace: "assay-system",
+		Namespace: "cupel-system",
 	}
 }
 
@@ -102,7 +102,7 @@ func TestDeletingARecordIsDetectedInCluster(t *testing.T) {
 
 	// Remove the third record, as somebody covering their tracks would.
 	var victim securityv1alpha1.AuditRecord
-	key := client.ObjectKey{Name: recordName(3), Namespace: "assay-system"}
+	key := client.ObjectKey{Name: recordName(3), Namespace: "cupel-system"}
 	if err := r.Client.Get(ctx, key, &victim); err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestEditingARecordIsDetectedInCluster(t *testing.T) {
 	}
 
 	var rec securityv1alpha1.AuditRecord
-	key := client.ObjectKey{Name: recordName(1), Namespace: "assay-system"}
+	key := client.ObjectKey{Name: recordName(1), Namespace: "cupel-system"}
 	if err := r.Client.Get(ctx, key, &rec); err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func (c *countingClient) Get(ctx context.Context, key client.ObjectKey, o client
 func TestAppendDoesNotListTheWholeChain(t *testing.T) {
 	scheme := testScheme(t)
 	counting := &countingClient{Client: fake.NewClientBuilder().WithScheme(scheme).Build()}
-	r := &Recorder{Client: counting, Namespace: "assay-system"}
+	r := &Recorder{Client: counting, Namespace: "cupel-system"}
 
 	// Build a chain long enough that a listing would be obvious.
 	for i := 0; i < 25; i++ {
@@ -267,7 +267,7 @@ func TestHeadCatchesUpFromAStaleCheckpoint(t *testing.T) {
 	scheme := testScheme(t)
 	r := &Recorder{
 		Client:    fake.NewClientBuilder().WithScheme(scheme).Build(),
-		Namespace: "assay-system",
+		Namespace: "cupel-system",
 	}
 	ctx := context.Background()
 	for i := 0; i < 5; i++ {

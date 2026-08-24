@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/resolver"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/resolver"
 )
 
 // MLflow is a Source backed by an MLflow tracking server's Model Registry and
@@ -63,18 +63,18 @@ func NewMLflow(opts MLflowOptions) *MLflow {
 // Name identifies this source.
 func (m *MLflow) Name() string { return "mlflow" }
 
-// Tag keys Assay writes back onto an MLflow model version. Dotted so they group
-// under "assay" in the MLflow UI's tag list.
+// Tag keys Cupel writes back onto an MLflow model version. Dotted so they group
+// under "cupel" in the MLflow UI's tag list.
 const (
-	TagVerdict   = "assay.verdict"
-	TagRiskScore = "assay.risk_score"
-	TagMalware   = "assay.malware"
-	TagSecrets   = "assay.secrets"
-	TagScanTime  = "assay.scan_time"
-	TagReport    = "assay.report"
+	TagVerdict   = "cupel.verdict"
+	TagRiskScore = "cupel.risk_score"
+	TagMalware   = "cupel.malware"
+	TagSecrets   = "cupel.secrets"
+	TagScanTime  = "cupel.scan_time"
+	TagReport    = "cupel.report"
 )
 
-// --- REST payload shapes (only the fields Assay reads) ---
+// --- REST payload shapes (only the fields Cupel reads) ---
 
 type mlflowRegisteredModel struct {
 	Name string `json:"name"`

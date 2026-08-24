@@ -1,11 +1,11 @@
-{{- include "assay.validateCertMode" . -}}
+{{- include "cupel.validateCertMode" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "assay.fullname" . }}
+  name: {{ include "cupel.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "assay.labels" . | nindent 4 }}
+    {{- include "cupel.labels" . | nindent 4 }}
     app.kubernetes.io/component: controller
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -20,11 +20,11 @@ spec:
       maxSurge: 1
   selector:
     matchLabels:
-      {{- include "assay.selectorLabels" . | nindent 6 }}
+      {{- include "cupel.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "assay.selectorLabels" . | nindent 8 }}
+        {{- include "cupel.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
       annotations:
         # Roll the pods when the webhook wiring changes.
@@ -53,7 +53,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
                 labelSelector:
                   matchLabels:
-                    {{- include "assay.selectorLabels" . | nindent 20 }}
+                    {{- include "cupel.selectorLabels" . | nindent 20 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -64,7 +64,7 @@ spec:
       {{- end }}
       containers:
         - name: manager
-          image: {{ include "assay.image" . }}
+          image: {{ include "cupel.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             {{- if .Values.operator.leaderElect }}
@@ -92,8 +92,8 @@ spec:
           env:
             # Scan Jobs run this same image for their fetch and publish steps,
             # so the manager must know its own reference.
-            - name: ASSAY_OPERATOR_IMAGE
-              value: {{ include "assay.image" . }}
+            - name: CUPEL_OPERATOR_IMAGE
+              value: {{ include "cupel.image" . }}
             # The gate searches the workload's namespace and then this one.
             # Without it, reports written here are invisible to the gate and
             # every workload is admitted as unscanned.

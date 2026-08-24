@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// Every Assay scanner image takes exactly two positional arguments: the staged
+// Every Cupel scanner image takes exactly two positional arguments: the staged
 // artifact directory and the output file. The catalog and the images have to
 // agree on that, and nothing at runtime would catch a mismatch — the scanner
 // would just fail inside a Job and the scan would stall.
@@ -81,7 +81,7 @@ func TestResolveImageUsesConfiguredRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := ResolveImage(def, "registry.internal/mirror", "assay:1.0")
+	got := ResolveImage(def, "registry.internal/mirror", "cupel:1.0")
 	want := "registry.internal/mirror/scanner-clamav:" + ImageTag
 	if got != want {
 		t.Errorf("ResolveImage() = %q, want %q", got, want)
@@ -91,7 +91,7 @@ func TestResolveImageUsesConfiguredRegistry(t *testing.T) {
 func TestResolveImageFallsBackToDefaultRegistry(t *testing.T) {
 	def, _ := Get("trivy")
 
-	got := ResolveImage(def, "", "assay:1.0")
+	got := ResolveImage(def, "", "cupel:1.0")
 	want := DefaultRegistry + "/scanner-trivy:" + ImageTag
 	if got != want {
 		t.Errorf("ResolveImage() = %q, want %q", got, want)
@@ -101,7 +101,7 @@ func TestResolveImageFallsBackToDefaultRegistry(t *testing.T) {
 func TestResolveImageTrimsTrailingSlash(t *testing.T) {
 	def, _ := Get("syft")
 
-	if got := ResolveImage(def, "registry.internal/mirror/", "assay:1.0"); strings.Contains(got, "//") {
+	if got := ResolveImage(def, "registry.internal/mirror/", "cupel:1.0"); strings.Contains(got, "//") {
 		t.Errorf("ResolveImage() = %q, want no doubled slash", got)
 	}
 }
@@ -114,7 +114,7 @@ func TestRunnerScannersUseTheOperatorImage(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := ResolveImage(def, "registry.internal", "assay:1.0"); got != "assay:1.0" {
+		if got := ResolveImage(def, "registry.internal", "cupel:1.0"); got != "cupel:1.0" {
 			t.Errorf("%s resolved to %q, want the operator image", name, got)
 		}
 	}

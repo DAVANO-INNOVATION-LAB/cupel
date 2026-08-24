@@ -11,11 +11,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 )
 
 // CheckpointName is the singleton checkpoint object per namespace.
-const CheckpointName = "assay-audit-head"
+const CheckpointName = "cupel-audit-head"
 
 // Recorder appends to the audit chain stored as AuditRecord objects.
 type Recorder struct {

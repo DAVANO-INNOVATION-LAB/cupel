@@ -7,7 +7,7 @@ import (
 
 func siteBindings() Bindings {
 	return Bindings{
-		{Group: "assay-admins", Role: RoleAdmin, AllNamespaces: true},
+		{Group: "cupel-admins", Role: RoleAdmin, AllNamespaces: true},
 		{Group: "secops", Role: RoleSecurity, AllNamespaces: true},
 		{Group: "ml-team-fraud", Role: RoleOwner, Namespaces: []string{"team-fraud"}},
 		{Group: "ml-team-nlp", Role: RoleOwner, Namespaces: []string{"team-nlp"}},

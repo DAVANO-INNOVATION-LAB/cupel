@@ -13,14 +13,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/audit"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
 )
 
 // ExceptionSigner stamps an ArtifactException with the authenticated identity
 // of whoever created it.
 //
-// A waiver is the one place in Assay where a human overrides the machine, so
+// A waiver is the one place in Cupel where a human overrides the machine, so
 // it is the one record that has to survive an argument a year later: who
 // accepted this risk, when, on what grounds, and against which bytes. A
 // free-text "approvedBy" field cannot answer that — anyone who can create the

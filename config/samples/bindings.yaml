@@ -1,4 +1,4 @@
-# Maps identity-provider groups to Assay roles and the tenants they cover.
+# Maps identity-provider groups to Cupel roles and the tenants they cover.
 #
 # There is no default. A missing bindings file is a startup error rather than a
 # permissive fallback: the failure mode of guessing here is a console that shows
@@ -16,7 +16,7 @@
 # A single trailing "*" wildcards a group prefix. It is not permitted anywhere
 # else: a mid-string wildcard is very easy to write more broadly than intended.
 bindings:
-  - group: assay-admins
+  - group: cupel-admins
     role: admin
     allNamespaces: true
 

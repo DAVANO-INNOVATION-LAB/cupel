@@ -12,14 +12,14 @@ import (
 //
 // The gate used to read a model reference from annotations, understand KServe
 // InferenceServices natively, and admit everything else with "no model
-// reference; nothing for assay to validate". That sentence is a claim, and for
+// reference; nothing for cupel to validate". That sentence is a claim, and for
 // a plain Deployment mounting a PVC full of weights it is false: there is a
 // model, the gate simply could not see it.
 //
 // This file makes the workload's intent visible. Where a storage location is
 // discoverable the reference is built from it and the workload is gated like
 // any other. Where intent is clear but identity is not, that is reported as
-// its own outcome — "serving something Assay cannot identify" is a different
+// its own outcome — "serving something Cupel cannot identify" is a different
 // fact from "serving nothing", and collapsing them is how a gate ends up
 // enforcing on the subset of traffic that volunteered.
 
@@ -197,7 +197,7 @@ func envDetail(name, value string, entry map[string]any) string {
 		return fmt.Sprintf("%s=%s", name, value)
 	}
 	if _, ok := entry["valueFrom"]; ok {
-		return fmt.Sprintf("%s is set from a reference Assay cannot read at admission time", name)
+		return fmt.Sprintf("%s is set from a reference Cupel cannot read at admission time", name)
 	}
 	return name
 }
@@ -222,7 +222,7 @@ func podSpecOf(obj *unstructured.Unstructured) (map[string]any, bool) {
 
 // storageSchemes are the location forms a resolver can act on. They are the
 // same set the fetch step understands, so a reference derived here names
-// something Assay could actually have scanned.
+// something Cupel could actually have scanned.
 var storageSchemes = []string{
 	"s3://", "gs://", "oci://", "http://", "https://", "pvc://",
 	"hdfs://", "abfss://", "azure://", "mlflow-artifacts:/", "models:/",

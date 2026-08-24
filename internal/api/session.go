@@ -22,7 +22,7 @@ import (
 )
 
 // sessionCookie is the name of the cookie carrying the signed session.
-const sessionCookie = "assay_session"
+const sessionCookie = "cupel_session"
 
 // session is what is stored in the cookie after a successful login. It holds
 // identity only — never capabilities or tenant scope, which are re-derived

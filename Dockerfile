@@ -1,7 +1,7 @@
-# Assay ships one image containing four binaries: the operator manager, the
+# Cupel ships one image containing four binaries: the operator manager, the
 # in-pod scan runner, the console API server, and the standalone CLI. Scan Jobs mount the same image
 # for their fetch and publish steps, so there is a single artifact to mirror
-# into an air-gapped registry, and `docker run --entrypoint /assay` gives the
+# into an air-gapped registry, and `docker run --entrypoint /cupel` gives the
 # same scanner to anyone without a cluster.
 # Must be at least the go directive in go.mod, which oras-go pins to 1.25.
 # Pinned to the BUILD platform, not the target. The binaries are pure Go with
@@ -24,12 +24,12 @@ ARG TARGETARCH=amd64
 ARG VERSION=dev
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-      go build -a -ldflags="-s -w" -o assay-manager ./cmd/manager && \
+      go build -a -ldflags="-s -w" -o cupel-manager ./cmd/manager && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-      go build -a -ldflags="-s -w" -o assay-runner ./cmd/runner && \
+      go build -a -ldflags="-s -w" -o cupel-runner ./cmd/runner && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-      go build -a -ldflags="-s -w -X main.version=${VERSION}" -o assay ./cmd/assay && \
-      go build -a -ldflags="-s -w" -o assay-api ./cmd/api
+      go build -a -ldflags="-s -w -X main.version=${VERSION}" -o cupel ./cmd/cupel && \
+      go build -a -ldflags="-s -w" -o cupel-api ./cmd/api
 
 FROM registry.access.redhat.com/ubi9/ubi-micro:latest
 
@@ -42,10 +42,10 @@ WORKDIR /
 # manager to install it with.
 COPY --from=builder /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-certificates.crt
 
-COPY --from=builder /workspace/assay-manager /assay-manager
-COPY --from=builder /workspace/assay-runner /assay-runner
-COPY --from=builder /workspace/assay-api /assay-api
-COPY --from=builder /workspace/assay /assay
+COPY --from=builder /workspace/cupel-manager /cupel-manager
+COPY --from=builder /workspace/cupel-runner /cupel-runner
+COPY --from=builder /workspace/cupel-api /cupel-api
+COPY --from=builder /workspace/cupel /cupel
 
 # 65532 is the conventional nonroot UID. OpenShift assigns its own UID from
 # the namespace range, which works because the binaries need no writable paths.
@@ -55,10 +55,10 @@ USER 65532:65532
 # OCI labels. The source label is what links a published package back to this
 # repository on GitHub — without it the package is an orphan in the org's
 # package list and cannot inherit the repository's visibility.
-LABEL org.opencontainers.image.source="https://github.com/DAVANO-INNOVATION-LAB/assay" \
+LABEL org.opencontainers.image.source="https://github.com/DAVANO-INNOVATION-LAB/cupel" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="Davano Innovation Lab" \
-      org.opencontainers.image.title="assay" \
+      org.opencontainers.image.title="cupel" \
       org.opencontainers.image.description="Model supply-chain security operator for OpenShift and Kubernetes"
 
-ENTRYPOINT ["/assay-manager"]
+ENTRYPOINT ["/cupel-manager"]

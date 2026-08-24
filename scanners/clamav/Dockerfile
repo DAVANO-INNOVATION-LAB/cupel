@@ -37,8 +37,8 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.n
     rm -rf /var/cache/dnf
 
 COPY --from=dbfetcher /opt/clamav-db /opt/clamav-db
-COPY entrypoint.sh /usr/local/bin/assay-scan
-RUN chmod 0755 /usr/local/bin/assay-scan && chmod -R a+rX /opt/clamav-db
+COPY entrypoint.sh /usr/local/bin/cupel-scan
+RUN chmod 0755 /usr/local/bin/cupel-scan && chmod -R a+rX /opt/clamav-db
 
 ENV HOME=/tmp \
     TMPDIR=/tmp
@@ -48,10 +48,10 @@ USER 65532:65532
 # OCI labels. The source label is what links a published package back to this
 # repository on GitHub — without it the package is an orphan in the org's
 # package list and cannot inherit the repository's visibility.
-LABEL org.opencontainers.image.source="https://github.com/DAVANO-INNOVATION-LAB/assay" \
+LABEL org.opencontainers.image.source="https://github.com/DAVANO-INNOVATION-LAB/cupel" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="Davano Innovation Lab" \
-      org.opencontainers.image.title="assay-scanner-clamav" \
+      org.opencontainers.image.title="cupel-scanner-clamav" \
       org.opencontainers.image.description="ClamAV with signature database baked in, for air-gapped model scanning"
 
-ENTRYPOINT ["/usr/local/bin/assay-scan"]
+ENTRYPOINT ["/usr/local/bin/cupel-scan"]

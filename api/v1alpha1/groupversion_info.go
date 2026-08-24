@@ -1,4 +1,4 @@
-// Package v1alpha1 contains API Schema definitions for the Assay
+// Package v1alpha1 contains API Schema definitions for the Cupel
 // security v1alpha1 API group.
 // +kubebuilder:object:generate=true
 // +groupName=security.davano.io

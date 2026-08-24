@@ -1,5 +1,5 @@
 name: Missed detection
-description: Assay approved something it should have flagged
+description: Cupel approved something it should have flagged
 labels: ["detection", "needs-triage"]
 body:
   - type: markdown
@@ -7,7 +7,7 @@ body:
       value: |
         **Stop if this is exploitable.** A general technique for getting
         malicious artifacts past the gate is a security report — see
-        [SECURITY.md](https://github.com/DAVANO-INNOVATION-LAB/assay/blob/main/SECURITY.md).
+        [SECURITY.md](https://github.com/DAVANO-INNOVATION-LAB/cupel/blob/main/SECURITY.md).
         This template is for a specific artifact that was judged wrongly.
 
         Please check the documented limits first. Weight-level poisoning,
@@ -30,8 +30,8 @@ body:
   - type: textarea
     id: output
     attributes:
-      label: What Assay reported
-      description: The verdict, risk score, and findings. `assay inspect <path>` output is perfect.
+      label: What Cupel reported
+      description: The verdict, risk score, and findings. `cupel inspect <path>` output is perfect.
       render: shell
     validations: { required: true }
   - type: input

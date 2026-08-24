@@ -1,7 +1,7 @@
 REGISTRY ?= ghcr.io/davano-innovation-lab
-IMG ?= $(REGISTRY)/assay-operator:$(IMAGE_TAG)
+IMG ?= $(REGISTRY)/cupel-operator:$(IMAGE_TAG)
 IMAGE_TAG ?= 0.2.4
-NAMESPACE ?= assay-system
+NAMESPACE ?= cupel-system
 CONTROLLER_TOOLS_VERSION ?= v0.17.2
 
 # Must match scanners.DefaultRegistry and scanners.ImageTag in
@@ -30,7 +30,7 @@ all: build
 
 .PHONY: manifests
 manifests: controller-gen ## Generate CRDs and RBAC from kubebuilder markers.
-	$(CONTROLLER_GEN) crd rbac:roleName=assay-manager-role paths=./... \
+	$(CONTROLLER_GEN) crd rbac:roleName=cupel-manager-role paths=./... \
 		output:crd:artifacts:config=config/crd/bases \
 		output:rbac:artifacts:config=config/rbac
 
@@ -73,13 +73,13 @@ lint: golangci-lint ## Run the linters CI runs.
 
 .PHONY: build
 build: fmt vet ## Build all binaries.
-	go build -o bin/assay-manager ./cmd/manager
-	go build -o bin/assay-runner ./cmd/runner
-	go build -ldflags "$(CLI_LDFLAGS)" -o bin/assay ./cmd/assay
+	go build -o bin/cupel-manager ./cmd/manager
+	go build -o bin/cupel-runner ./cmd/runner
+	go build -ldflags "$(CLI_LDFLAGS)" -o bin/cupel ./cmd/cupel
 
 .PHONY: cli
 cli: ## Build the standalone inspector CLI (make cli VERSION=v0.2.4).
-	go build -ldflags "$(CLI_LDFLAGS)" -o bin/assay ./cmd/assay
+	go build -ldflags "$(CLI_LDFLAGS)" -o bin/cupel ./cmd/cupel
 
 # GOOS/GOARCH pairs shipped as release binaries.
 CLI_PLATFORMS ?= darwin/amd64 darwin/arm64 linux/amd64 linux/arm64
@@ -89,10 +89,10 @@ cli-release: ## Cross-compile the CLI for every release platform into dist/.
 	@mkdir -p dist
 	@for platform in $(CLI_PLATFORMS); do \
 		os=$${platform%/*}; arch=$${platform#*/}; \
-		out=dist/assay-$(VERSION)-$$os-$$arch; \
+		out=dist/cupel-$(VERSION)-$$os-$$arch; \
 		echo "building $$out"; \
 		GOOS=$$os GOARCH=$$arch CGO_ENABLED=0 \
-			go build -ldflags "$(CLI_LDFLAGS)" -o $$out ./cmd/assay || exit 1; \
+			go build -ldflags "$(CLI_LDFLAGS)" -o $$out ./cmd/cupel || exit 1; \
 	done
 
 .PHONY: docker-build
@@ -132,7 +132,7 @@ mirror-list: ## Print every image to mirror into an air-gapped registry.
 
 ##@ Packaging
 
-HELM_CHART ?= deploy/helm/assay
+HELM_CHART ?= deploy/helm/cupel
 
 .PHONY: helm-sync
 helm-sync: manifests ## Copy generated CRDs and RBAC rules into the Helm chart.
@@ -156,11 +156,11 @@ helm-lint: helm-sync ## Lint and render the chart in every cert mode.
 	helm lint $(HELM_CHART)
 	@for mode in openshift cert-manager; do \
 		echo "--- rendering certMode=$$mode"; \
-		helm template assay $(HELM_CHART) --namespace assay-system \
+		helm template cupel $(HELM_CHART) --namespace cupel-system \
 			--set webhook.certMode=$$mode > /dev/null || exit 1; \
 	done
 	@echo "--- rendering with monitoring + extra scan namespaces"
-	@helm template assay $(HELM_CHART) --namespace assay-system \
+	@helm template cupel $(HELM_CHART) --namespace cupel-system \
 		--set metrics.serviceMonitor.enabled=true \
 		--set metrics.prometheusRule.enabled=true \
 		--set scanner.additionalNamespaces='{team-a,team-b}' > /dev/null

@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/metrics"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/registry"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/metrics"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/registry"
 )
 
 // defaultPollInterval is how often the registry is polled when the connector
@@ -62,7 +62,7 @@ type RegistryClient interface {
 	PatchModelVersionProperties(ctx context.Context, versionID string, props map[string]registry.MetadataValue) error
 }
 
-// Annotations Assay puts on ArtifactScans to correlate them with the registry.
+// Annotations Cupel puts on ArtifactScans to correlate them with the registry.
 const (
 	AnnotationRegistryModelID   = "security.davano.io/registry-model-id"
 	AnnotationRegistryVersionID = "security.davano.io/registry-version-id"

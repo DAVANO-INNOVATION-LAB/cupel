@@ -33,11 +33,11 @@ const (
 
 // There is deliberately no behavioural / "AI safety" category. Prompt-injection
 // resistance, jailbreak and backdoor detection are open research problems, not
-// checks a scanner can make a defensible claim about. Assay's scope is the
+// checks a scanner can make a defensible claim about. Cupel's scope is the
 // model *artifact*. A placeholder category here could be named by a policy and
 // would return a verdict that meant nothing.
 
-// DefaultRegistry is where the Assay scanner images are published. Air-gapped
+// DefaultRegistry is where the Cupel scanner images are published. Air-gapped
 // clusters mirror these and point the operator at the mirror with
 // --scanner-registry, so image references are never hardcoded to a host the
 // cluster cannot reach.
@@ -55,7 +55,7 @@ type Definition struct {
 	Category Category
 	// Image is the repository name within the scanner registry, without a
 	// registry host or tag. Empty means the scanner is implemented by the
-	// Assay runner and uses the operator image.
+	// Cupel runner and uses the operator image.
 	Image string
 	// Command overrides the image entrypoint.
 	Command []string
@@ -92,7 +92,13 @@ const (
 
 // Result formats the publisher understands.
 const (
-	FormatAssay      = "assay"
+	// FormatTessera is a wire value, not a product name. Tessera's ingest
+	// recognises "tessera" and "assay" — the latter for reports written before
+	// this project was renamed — and nothing else. Renaming this string along
+	// with everything else made every scan unparseable, which is why it is
+	// called out here: the identifier belongs to the format, and the format
+	// belongs to Tessera.
+	FormatTessera    = "tessera"
 	FormatClamAV     = "clamav"
 	FormatTrivyJSON  = "trivy-json"
 	FormatGrypeJSON  = "grype-json"
@@ -102,7 +108,7 @@ const (
 
 // catalog is the built-in scanner set.
 //
-// Every Assay scanner image exposes the same contract: its entrypoint takes
+// Every Cupel scanner image exposes the same contract: its entrypoint takes
 // exactly two positional arguments, the staged artifact directory and the
 // output file. Tool-specific flags live in the image's entrypoint script
 // rather than here, so the catalog never has to encode one tool's CLI, and a
@@ -159,18 +165,18 @@ var catalog = map[string]Definition{
 	"model-inspector": {
 		Name:           "model-inspector",
 		Category:       CategoryModel,
-		Image:          "", // filled in with the Assay operator image at job build time
-		Command:        []string{"/assay-runner"},
+		Image:          "", // filled in with the Cupel operator image at job build time
+		Command:        []string{"/cupel-runner"},
 		Args:           []string{"inspect", "--workspace", PlaceholderWorkspace, "--out", PlaceholderResults + "/model-inspector.json"},
 		OutputFile:     "model-inspector.json",
-		ResultFormat:   FormatAssay,
+		ResultFormat:   FormatTessera,
 		DefaultEnabled: true,
 	},
 	"provenance": {
 		Name:     "provenance",
 		Category: CategoryProvenance,
 		Image:    "",
-		Command:  []string{"/assay-runner"},
+		Command:  []string{"/cupel-runner"},
 		Args: []string{"verify-provenance",
 			"--workspace", PlaceholderWorkspace,
 			"--out", PlaceholderResults + "/provenance.json",
@@ -178,7 +184,7 @@ var catalog = map[string]Definition{
 			"--metadata", PlaceholderResults + "/artifact.json",
 		},
 		OutputFile:     "provenance.json",
-		ResultFormat:   FormatAssay,
+		ResultFormat:   FormatTessera,
 		DefaultEnabled: true,
 	},
 	"tessera": {
@@ -190,21 +196,21 @@ var catalog = map[string]Definition{
 		// shelling out to a separate container would have avoided — and it
 		// removes an image to build, publish, mirror and keep in step.
 		Image:   "",
-		Command: []string{"/assay-runner"},
+		Command: []string{"/cupel-runner"},
 		Args: []string{"aibom",
 			"--workspace", PlaceholderWorkspace,
 			"--out", PlaceholderResults + "/tessera.json",
 			"--bom-dir", PlaceholderResults,
 		},
 		OutputFile:     "tessera.json",
-		ResultFormat:   FormatAssay,
+		ResultFormat:   FormatTessera,
 		DefaultEnabled: true,
 	},
 }
 
 // ResolveImage returns the fully qualified image for a scanner.
 //
-// operatorImage is used for scanners implemented by the Assay runner. registry
+// operatorImage is used for scanners implemented by the Cupel runner. registry
 // is the host and namespace holding the scanner images; an empty value falls
 // back to DefaultRegistry, which lets an air-gapped cluster point at a mirror
 // without any change to the catalog.
@@ -270,6 +276,6 @@ func Defaults() []string {
 	return names
 }
 
-// UsesOperatorImage reports whether a scanner is implemented by the Assay
+// UsesOperatorImage reports whether a scanner is implemented by the Cupel
 // runner binary rather than an external tool image.
 func UsesOperatorImage(def Definition) bool { return def.Image == "" }

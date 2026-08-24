@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/inspector"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/policy"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/results"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/scanners"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/inspector"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/results"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 // runInspectorStage mirrors what the scan Job does: the inspector writes a
@@ -40,7 +40,7 @@ func runInspectorStage(t *testing.T, modelDir string) securityv1alpha1.ScannerRe
 		t.Fatal(err)
 	}
 
-	parsed, err := results.Parse(scanners.FormatAssay, out)
+	parsed, err := results.Parse(scanners.FormatTessera, out)
 	if err != nil {
 		t.Fatalf("parse inspector output: %v", err)
 	}

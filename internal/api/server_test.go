@@ -13,8 +13,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
-	"github.com/DAVANO-INNOVATION-LAB/assay/internal/authz"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
 )
 
 func testScheme(t *testing.T) *runtime.Scheme {
@@ -40,7 +40,7 @@ func testServer(t *testing.T, objs ...runtime.Object) *Server {
 	return &Server{
 		k8s: fake.NewClientBuilder().WithScheme(testScheme(t)).WithRuntimeObjects(objs...).Build(),
 		cfg: Config{
-			Namespace: "assay-system",
+			Namespace: "cupel-system",
 			Bindings: authz.Bindings{
 				{Group: "secops", Role: authz.RoleSecurity, AllNamespaces: true},
 				{Group: "team-a", Role: authz.RoleOwner, Namespaces: []string{"team-a"}},

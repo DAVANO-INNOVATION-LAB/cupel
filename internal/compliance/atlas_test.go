@@ -138,16 +138,16 @@ func TestCoverageSummaryIsHonest(t *testing.T) {
 // technique through an ID that nothing produces is the fail-open pattern
 // applied to compliance output: it reads as coverage and detects nothing.
 //
-// AML.T0018.003 cited "ASSAY-GGUF", which appeared in no scanner.
+// AML.T0018.003 cited "cupel-GGUF", which appeared in no scanner.
 func TestEveryCitedFindingPrefixCanActuallyBeEmitted(t *testing.T) {
 	// Prefixes the inspector and scanners genuinely produce, plus scanner
 	// names used as evidence markers.
 	emitted := map[string]bool{
-		"ASSAY-PICKLE": true, "ASSAY-COVERAGE": true, "ASSAY-PROV": true,
-		"ASSAY-FORMAT": true, "ASSAY-IO": true, "ASSAY-LINK": true,
-		"ASSAY-EXEC": true, "ASSAY-HF": true, "ASSAY-PY": true,
-		"ASSAY-ONNX": true, "ASSAY-ZIP": true, "ASSAY-ELF": true,
-		"ASSAY-KERAS": true, "ASSAY-TF": true, "ASSAY-AIBOM": true,
+		"cupel-PICKLE": true, "cupel-COVERAGE": true, "cupel-PROV": true,
+		"cupel-FORMAT": true, "cupel-IO": true, "cupel-LINK": true,
+		"cupel-EXEC": true, "cupel-HF": true, "cupel-PY": true,
+		"cupel-ONNX": true, "cupel-ZIP": true, "cupel-ELF": true,
+		"cupel-KERAS": true, "cupel-TF": true, "cupel-AIBOM": true,
 		"clamav": true, "trivy": true, "grype": true, "syft": true,
 		"trufflehog": true, "model-inspector": true, "provenance": true,
 		"tessera": true,

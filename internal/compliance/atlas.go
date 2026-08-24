@@ -12,7 +12,7 @@ package compliance
 //
 // Second, and more important: ATLAS publishes no detection objects. There is no
 // upstream statement of which techniques a scanner can observe. The Coverage
-// value on each technique is Assay's own assessment, and it is deliberately
+// value on each technique is Cupel's own assessment, and it is deliberately
 // conservative. A model backdoored in its weights produces a perfectly valid,
 // signature-clean file that no static scanner can distinguish from a clean one.
 // Claiming that technique would be a lie that an evaluator catches immediately,
@@ -20,18 +20,18 @@ package compliance
 const (
 	// ATLASVersion is the release these mappings were verified against. Pinned
 	// deliberately: ATLAS renames techniques between releases, and tracking
-	// "latest" would let an upstream change silently alter what Assay claims.
+	// "latest" would let an upstream change silently alter what Cupel claims.
 	ATLASVersion = "2026.07"
 )
 
-// ATLASCoverage is how much of a technique Assay can observe by inspecting an
+// ATLASCoverage is how much of a technique Cupel can observe by inspecting an
 // artifact.
 type ATLASCoverage string
 
 const (
 	// CoverageDetected means static artifact analysis genuinely observes this.
 	CoverageDetected ATLASCoverage = "Detected"
-	// CoveragePartial means Assay sees part of the technique. The bounded part
+	// CoveragePartial means Cupel sees part of the technique. The bounded part
 	// is named on the technique so the gap is not left to inference.
 	CoveragePartial ATLASCoverage = "Partial"
 	// CoverageOutOfScope means no property of a model artifact evidences this.
@@ -48,12 +48,12 @@ type Technique struct {
 	Name string
 	// Tactic is the parent tactic name.
 	Tactic string
-	// Coverage is Assay's assessment.
+	// Coverage is Cupel's assessment.
 	Coverage ATLASCoverage
 	// Rationale explains the assessment. For anything not Detected, it says
 	// what would be required instead.
 	Rationale string
-	// Findings are the Assay finding-ID prefixes or scanner categories that
+	// Findings are the Cupel finding-ID prefixes or scanner categories that
 	// evidence this technique. Empty when Coverage is OutOfScope.
 	Findings []string
 	// Mitigations are the ATLAS mitigation IDs this technique maps to.
@@ -81,7 +81,7 @@ func ReplacementFor(id string) (string, bool) {
 
 // atlasTechniques are the techniques relevant to model artifact security.
 //
-// Techniques Assay cannot see are included on purpose. A coverage map that
+// Techniques Cupel cannot see are included on purpose. A coverage map that
 // lists only wins reads as complete when it is not; the ones marked
 // OutOfScope are the honest boundary of what this tool is.
 var atlasTechniques = []Technique{
@@ -89,7 +89,7 @@ var atlasTechniques = []Technique{
 	{
 		ID: "AML.T0011.000", Name: "Unsafe AI Artifacts", Tactic: "Execution",
 		Coverage:    CoverageDetected,
-		Findings:    []string{"ASSAY-PICKLE", "ASSAY-KERAS", "ASSAY-TF", "model-inspector"},
+		Findings:    []string{"cupel-PICKLE", "cupel-KERAS", "cupel-TF", "model-inspector"},
 		Mitigations: []string{"AML.M0011", "AML.M0013", "AML.M0014", "AML.M0016"},
 		Rationale: "Deserialization of a model that executes code on load. The inspector reads pickle " +
 			"opcodes directly and reports GLOBAL/STACK_GLOBAL references to callables that run at load time. " +
@@ -101,7 +101,7 @@ var atlasTechniques = []Technique{
 	{
 		ID: "AML.T0018.002", Name: "Embed Malware", Tactic: "AI Attack Staging",
 		Coverage:    CoverageDetected,
-		Findings:    []string{"ASSAY-PICKLE", "clamav", "model-inspector"},
+		Findings:    []string{"cupel-PICKLE", "clamav", "model-inspector"},
 		Mitigations: []string{"AML.M0013"},
 		Rationale: "Malware embedded in a model artifact. Covered by both opcode analysis and " +
 			"conventional malware scanning of the staged bytes.",
@@ -109,7 +109,7 @@ var atlasTechniques = []Technique{
 	{
 		ID: "AML.T0112.001", Name: "Machine Compromise: AI Artifacts", Tactic: "Impact",
 		Coverage:    CoverageDetected,
-		Findings:    []string{"ASSAY-PICKLE", "clamav"},
+		Findings:    []string{"cupel-PICKLE", "clamav"},
 		Mitigations: []string{"AML.M0011", "AML.M0016"},
 		Rationale:   "Embedded commands or malware in artifacts, including bundled scripts and notebooks.",
 	},
@@ -123,16 +123,16 @@ var atlasTechniques = []Technique{
 	},
 	{
 		// This technique is specifically about defeating model scanners, which
-		// makes it the one Assay is most obliged to handle correctly. ATLAS
+		// makes it the one Cupel is most obliged to handle correctly. ATLAS
 		// mitigation M0016 requires a scanner that still works on models it
 		// cannot fully deserialize — a scanner that skips what it cannot parse
-		// is defeated by design. Assay's coverage-gap findings exist for this.
+		// is defeated by design. Cupel's coverage-gap findings exist for this.
 		ID: "AML.T0076", Name: "Corrupt AI Model", Tactic: "Defense Evasion",
 		Coverage:    CoverageDetected,
-		Findings:    []string{"ASSAY-COVERAGE", "ASSAY-PICKLE"},
+		Findings:    []string{"cupel-COVERAGE", "cupel-PICKLE"},
 		Mitigations: []string{"AML.M0016"},
 		Rationale: "A model deliberately made un-deserializable so scanners skip it while it still " +
-			"executes on load. Assay reports unparsed and unread executable files as findings rather " +
+			"executes on load. Cupel reports unparsed and unread executable files as findings rather " +
 			"than passing them over, so a file that defeats the parser cannot also defeat the verdict.",
 	},
 
@@ -140,16 +140,16 @@ var atlasTechniques = []Technique{
 	{
 		ID: "AML.T0010", Name: "AI Supply Chain Compromise", Tactic: "Initial Access",
 		Coverage:    CoveragePartial,
-		Findings:    []string{"ASSAY-PROV", "ASSAY-PICKLE", "clamav"},
+		Findings:    []string{"cupel-PROV", "cupel-PICKLE", "clamav"},
 		Mitigations: []string{"AML.M0014", "AML.M0023", "AML.M0035"},
-		Rationale: "Assay detects the payload a compromise delivers, and signature verification " +
+		Rationale: "Cupel detects the payload a compromise delivers, and signature verification " +
 			"detects an artifact that did not come from a trusted publisher. The compromise event " +
 			"itself — how the upstream was breached — is not observable here.",
 	},
 	{
 		ID: "AML.T0010.003", Name: "AI Supply Chain Compromise: Model", Tactic: "Initial Access",
 		Coverage:    CoveragePartial,
-		Findings:    []string{"ASSAY-PROV", "ASSAY-PICKLE"},
+		Findings:    []string{"cupel-PROV", "cupel-PICKLE"},
 		Mitigations: []string{"AML.M0008", "AML.M0013", "AML.M0017"},
 		Rationale: "Provenance verification establishes whether the model came from a trusted signer. " +
 			"A compromised-but-correctly-signed model is not distinguishable by signature alone.",
@@ -165,7 +165,7 @@ var atlasTechniques = []Technique{
 	{
 		ID: "AML.T0018.001", Name: "Modify AI Model Architecture", Tactic: "AI Attack Staging",
 		Coverage:    CoveragePartial,
-		Findings:    []string{"ASSAY-ONNX", "model-inspector"},
+		Findings:    []string{"cupel-ONNX", "model-inspector"},
 		Mitigations: []string{"AML.M0008"},
 		Rationale: "Injected operators or subgraphs are parseable from an ONNX graph. Deciding whether " +
 			"an architecture is malicious requires a known-good baseline to compare against, which a " +
@@ -176,16 +176,16 @@ var atlasTechniques = []Technique{
 		ID: "AML.T0018.003", Name: "Modify Prompt Construction Logic", Tactic: "AI Attack Staging",
 		Coverage:    CoverageOutOfScope,
 		Mitigations: nil,
-		Rationale: "Chat templates and tool-call formatting live in a GGUF header, and Assay does not " +
+		Rationale: "Chat templates and tool-call formatting live in a GGUF header, and Cupel does not " +
 			"read GGUF headers — it records the format as present and produces no finding about it. " +
 			"This was previously mapped to a finding ID that nothing emits, which claimed coverage " +
-			"that did not exist. Tessera does parse these (TESS-GGUF-010); until Assay consumes it, " +
+			"that did not exist. Tessera does parse these (TESS-GGUF-010); until Cupel consumes it, " +
 			"the honest answer here is no.",
 	},
 	{
 		ID: "AML.T0074", Name: "Masquerading", Tactic: "Defense Evasion",
 		Coverage:    CoveragePartial,
-		Findings:    []string{"ASSAY-FORMAT"},
+		Findings:    []string{"cupel-FORMAT"},
 		Mitigations: []string{"AML.M0014"},
 		Rationale: "A file whose magic bytes contradict its extension is detectable. Registry namespace " +
 			"reuse — a familiar name republished by a different owner — needs registry-side history and " +
@@ -194,7 +194,7 @@ var atlasTechniques = []Technique{
 	{
 		ID: "AML.T0115.001", Name: "Publish Poisoned AI Artifacts: Models", Tactic: "Resource Development",
 		Coverage:    CoveragePartial,
-		Findings:    []string{"ASSAY-PICKLE", "clamav", "ASSAY-PROV"},
+		Findings:    []string{"cupel-PICKLE", "clamav", "cupel-PROV"},
 		Mitigations: []string{"AML.M0008", "AML.M0016"},
 		Rationale: "The code-and-malware fraction of a poisoned published model is detectable. Poisoning " +
 			"carried in the weights is not — see AML.T0018.000.",
@@ -257,7 +257,7 @@ var atlasTechniques = []Technique{
 		Coverage:    CoverageOutOfScope,
 		Mitigations: nil,
 		Rationale: "A trusted artifact replaced with a malicious one after adoption. Detecting it needs " +
-			"version history across time, not a point-in-time scan. Assay's periodic rescan narrows the " +
+			"version history across time, not a point-in-time scan. Cupel's periodic rescan narrows the " +
 			"window — a rescan under a new name preserves the earlier verdict for comparison — but it " +
 			"does not detect the pattern itself.",
 	},
@@ -278,7 +278,7 @@ var atlasTechniques = []Technique{
 		ID: "AML.T0012", Name: "Valid Accounts", Tactic: "Initial Access",
 		Coverage:    CoverageOutOfScope,
 		Mitigations: []string{"AML.M0005", "AML.M0019"},
-		Rationale: "Credential and identity control. Assay's own RBAC and tenant scoping address the " +
+		Rationale: "Credential and identity control. Cupel's own RBAC and tenant scoping address the " +
 			"console, not this technique in a customer's environment.",
 	},
 }
@@ -340,7 +340,7 @@ type ATLASCoverageSummary struct {
 	Total      int    `json:"total"`
 }
 
-// SummarizeATLASCoverage reports what Assay claims across the mapping.
+// SummarizeATLASCoverage reports what Cupel claims across the mapping.
 func SummarizeATLASCoverage() ATLASCoverageSummary {
 	s := ATLASCoverageSummary{Version: ATLASVersion, Total: len(atlasTechniques)}
 	for _, t := range atlasTechniques {

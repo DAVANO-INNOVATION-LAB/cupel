@@ -17,7 +17,7 @@ func objectFrom(t *testing.T, doc string) *unstructured.Unstructured {
 	return obj
 }
 
-// The case the gate used to admit with "nothing for assay to validate": a
+// The case the gate used to admit with "nothing for cupel to validate": a
 // plain Deployment with no annotations, a serving runtime image, and a claim
 // full of weights mounted into it.
 func TestDeploymentServingFromAPersistentVolumeIsSeen(t *testing.T) {
@@ -106,7 +106,7 @@ func TestValueFromIsEvidenceWithoutAValue(t *testing.T) {
 		t.Errorf("the response should say the value was unreadable, got %q", evidence[0].Detail)
 	}
 	if evidence[0].URI != "" {
-		t.Error("a value Assay cannot read must not become a URI")
+		t.Error("a value Cupel cannot read must not become a URI")
 	}
 }
 

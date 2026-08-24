@@ -12,7 +12,7 @@ import (
 
 	"github.com/DAVANO-INNOVATION-LAB/tessera"
 
-	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/assay/api/v1alpha1"
+	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 )
 
 // Parsed is one scanner's output, normalized.

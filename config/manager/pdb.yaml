@@ -6,13 +6,13 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: assay-controller-manager
-  namespace: assay-system
+  name: cupel-controller-manager
+  namespace: cupel-system
   labels:
-    app.kubernetes.io/name: assay-model-scanner
+    app.kubernetes.io/name: cupel-model-scanner
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: assay-model-scanner
+      app.kubernetes.io/name: cupel-model-scanner
       app.kubernetes.io/component: controller
