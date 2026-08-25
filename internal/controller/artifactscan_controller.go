@@ -295,13 +295,7 @@ func (r *ArtifactScanReconciler) loadExceptions(ctx context.Context, scan *secur
 	if err := r.List(ctx, &list, client.InNamespace(scan.Namespace)); err != nil {
 		return nil, fmt.Errorf("list exceptions: %w", err)
 	}
-	var matching []securityv1alpha1.ArtifactException
-	for _, ex := range list.Items {
-		if ex.Spec.ModelName == scan.Spec.ModelName && ex.Spec.ModelVersion == scan.Spec.ModelVersion {
-			matching = append(matching, ex)
-		}
-	}
-	return matching, nil
+	return policy.ExceptionsFor(list.Items, scan.Spec.ModelName, scan.Spec.ModelVersion), nil
 }
 
 // resolveScanners picks the scanner set: an explicit list on the scan wins,

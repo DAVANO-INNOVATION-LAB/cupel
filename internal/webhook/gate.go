@@ -194,6 +194,18 @@ func (g *ModelGate) findReport(ctx context.Context, workloadNamespace string, re
 		report := &securityv1alpha1.ModelSecurityReport{}
 		err := g.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: ns}, report)
 		if err == nil {
+			// The object name is derived from the model identity, and deriving
+			// it loses information: identifiers arrive from a registry and are
+			// flattened into something Kubernetes will accept. Two different
+			// models can flatten to the same name, and then whichever was
+			// scanned last decides the other one's fate.
+			//
+			// The report says which model it is about. Check it, rather than
+			// trusting that a name which matched was a name that meant the same
+			// thing.
+			if !reportDescribes(report, ref) {
+				continue
+			}
 			return report, nil
 		}
 		if client.IgnoreNotFound(err) != nil {
@@ -201,6 +213,29 @@ func (g *ModelGate) findReport(ctx context.Context, workloadNamespace string, re
 		}
 	}
 	return nil, nil
+}
+
+// reportDescribes reports whether a security report is about the model being
+// admitted, rather than one whose name merely derives to the same string.
+//
+// A mismatch is treated as no report at all: it is not evidence about this
+// model, and the safe reading of "no evidence" is whatever the operator chose
+// with --require-report, not somebody else's approval.
+func reportDescribes(report *securityv1alpha1.ModelSecurityReport, ref ModelRef) bool {
+	// An older report written before the operator recorded the identity has
+	// nothing to compare against. Accepting it keeps upgrades working; it is
+	// no weaker than the behaviour it replaces.
+	if report.Spec.ModelName == "" {
+		return true
+	}
+	if report.Spec.ModelName != ref.Model {
+		return false
+	}
+	// Version is compared only when both sides state one, for the same reason.
+	if report.Spec.ModelVersion != "" && ref.Version != "" {
+		return report.Spec.ModelVersion == ref.Version
+	}
+	return true
 }
 
 type decision struct {

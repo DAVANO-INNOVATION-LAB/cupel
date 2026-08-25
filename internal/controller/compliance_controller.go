@@ -16,6 +16,7 @@ import (
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/compliance"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/policy"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
@@ -314,14 +315,7 @@ func (r *ComplianceReconciler) loadExceptionsFor(ctx context.Context, report *se
 	if err := r.List(ctx, &list, client.InNamespace(report.Namespace)); err != nil {
 		return nil, fmt.Errorf("list exceptions: %w", err)
 	}
-	var matching []securityv1alpha1.ArtifactException
-	for _, exception := range list.Items {
-		if exception.Spec.ModelName == report.Spec.ModelName &&
-			exception.Spec.ModelVersion == report.Spec.ModelVersion {
-			matching = append(matching, exception)
-		}
-	}
-	return matching, nil
+	return policy.ExceptionsFor(list.Items, report.Spec.ModelName, report.Spec.ModelVersion), nil
 }
 
 func catalogFor(framework string) (*compliance.Catalog, error) {
