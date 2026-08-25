@@ -151,6 +151,10 @@ helm-sync: manifests ## Copy generated CRDs and RBAC rules into the Helm chart.
 	@awk '/^rules:/{f=1;next} f' config/rbac/role.yaml >> $(HELM_CHART)/rbac-rules.yaml
 	@echo "synced $$(ls $(HELM_CHART)/crds | wc -l | tr -d ' ') CRDs and the ClusterRole rules"
 
+.PHONY: stress
+stress: ## Run the load and adversarial tests. Minutes, not seconds.
+	go test -tags stress ./internal/stress/ -v -timeout 45m
+
 .PHONY: helm-lint
 helm-lint: helm-sync ## Lint and render the chart in every cert mode.
 	helm lint $(HELM_CHART)

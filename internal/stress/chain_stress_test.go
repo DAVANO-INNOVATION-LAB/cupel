@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -29,6 +30,11 @@ func stressScheme(t testing.TB) *kruntime.Scheme {
 		t.Fatal(err)
 	}
 	if err := securityv1alpha1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+	// The gate decodes workloads, and a decoder without apps/v1 fails closed —
+	// which would make every admission look like a denial.
+	if err := appsv1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	return s
