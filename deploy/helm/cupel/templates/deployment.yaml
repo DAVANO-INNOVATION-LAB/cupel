@@ -80,6 +80,13 @@ spec:
             - --job-ttl-seconds={{ .Values.operator.jobTTLSeconds }}
             - --workspace-size={{ .Values.operator.workspaceSize }}
             - --zap-log-level={{ .Values.operator.logLevel }}
+            - --scan-retention-days={{ .Values.retention.scanDays }}
+            - --maintenance-interval-minutes={{ .Values.retention.intervalMinutes }}
+            {{- if .Values.audit.archive.enabled }}
+            - --audit-archive-dir={{ .Values.audit.archive.mountPath }}
+            - --audit-archive-threshold={{ .Values.audit.archive.threshold }}
+            - --audit-archive-retain={{ .Values.audit.archive.retain }}
+            {{- end }}
             {{- with .Values.operator.defaultPolicy }}
             - --default-policy={{ . }}
             {{- end }}
@@ -142,6 +149,13 @@ spec:
               mountPath: /tmp/k8s-webhook-server/serving-certs
               readOnly: true
           {{- end }}
+          {{- if .Values.audit.archive.enabled }}
+          {{- if not .Values.webhook.enabled }}
+          volumeMounts:
+          {{- end }}
+            - name: audit-archive
+              mountPath: {{ .Values.audit.archive.mountPath }}
+          {{- end }}
           lifecycle:
             preStop:
               # Endpoint removal is asynchronous with SIGTERM; without a short
@@ -153,4 +167,12 @@ spec:
         - name: webhook-certs
           secret:
             secretName: {{ .Values.webhook.certSecretName }}
+      {{- end }}
+      {{- if .Values.audit.archive.enabled }}
+      {{- if not .Values.webhook.enabled }}
+      volumes:
+      {{- end }}
+        - name: audit-archive
+          persistentVolumeClaim:
+            claimName: {{ .Values.audit.archive.existingClaim | default (printf "%s-audit-archive" (include "cupel.fullname" .)) }}
       {{- end }}

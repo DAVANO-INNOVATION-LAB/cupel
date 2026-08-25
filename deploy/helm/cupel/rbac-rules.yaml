@@ -96,6 +96,7 @@
   - auditrecords
   verbs:
   - create
+  - delete
   - get
   - list
   - watch

@@ -171,3 +171,37 @@ metrics:
   prometheusRule:
     enabled: false
     labels: {}
+
+# Retention for the objects Cupel creates.
+#
+# Every scan leaves a scan object and the reports it owns behind. Nothing used
+# to remove them, so a cluster scanning steadily accumulated tens of thousands
+# of objects a year. What ages out is the working detail of a scan; the verdict
+# stays in the model's security report and the record of it stays in the audit
+# chain.
+retention:
+  # Days a finished scan is kept before it and its reports are removed.
+  # 0 keeps them forever, which is the old behaviour.
+  scanDays: 90
+  # How often retention and archiving run. Neither is urgent.
+  intervalMinutes: 60
+
+audit:
+  # Moving the older part of the audit chain out of the cluster.
+  #
+  # The chain is append-only and grows for as long as the cluster scans. Left in
+  # etcd it eventually reaches the backend quota, and an etcd over quota makes
+  # the whole cluster read-only — not just Cupel. Archiving keeps what is stored
+  # proportional to recent activity. The records are moved, not discarded, and
+  # the checkpoint records where they went so the chain still verifies whole.
+  archive:
+    enabled: false
+    # Mount an existing claim instead of creating one.
+    existingClaim: ""
+    size: 10Gi
+    storageClass: ""
+    mountPath: /var/lib/cupel/audit-archive
+    # Records held in the cluster before a run archives the front of the chain.
+    threshold: 50000
+    # Records left in the cluster after a run.
+    retain: 10000

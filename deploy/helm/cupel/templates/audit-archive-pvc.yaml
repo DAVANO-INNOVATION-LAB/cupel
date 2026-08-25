@@ -1,0 +1,27 @@
+{{- if and .Values.audit.archive.enabled (not .Values.audit.archive.existingClaim) }}
+# Where the older part of the audit chain is kept once it has been moved out of
+# the cluster. A volume rather than object storage because this has to work in
+# an air-gapped enclave, where there is nowhere else for it to go.
+#
+# Retained on uninstall: the chain is the record of what was admitted and why,
+# and a helm uninstall is not a decision to destroy it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "cupel.fullname" . }}-audit-archive
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cupel.labels" . | nindent 4 }}
+    app.kubernetes.io/component: audit-archive
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.audit.archive.size }}
+  {{- with .Values.audit.archive.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+{{- end }}

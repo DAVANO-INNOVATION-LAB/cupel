@@ -18,6 +18,7 @@ import (
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/controller"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/maintenance"
 	cupelmetrics "github.com/DAVANO-INNOVATION-LAB/cupel/internal/metrics"
 	cupelwebhook "github.com/DAVANO-INNOVATION-LAB/cupel/internal/webhook"
 )
@@ -40,6 +41,11 @@ func main() {
 	var (
 		trustRootPath          string
 		auditNamespace         string
+		auditArchiveDir        string
+		auditArchiveThreshold  int
+		auditArchiveRetain     int
+		scanRetentionDays      int
+		maintenanceMinutes     int
 		requireTransparencyLog bool
 		metricsAddr            string
 		probeAddr              string
@@ -86,6 +92,17 @@ func main() {
 	flag.StringVar(&auditNamespace, "audit-namespace", os.Getenv("POD_NAMESPACE"),
 		"namespace for the tamper-evident decision log; empty disables recording, "+
 			"which also leaves the AU-9 control mapping with nothing behind it")
+	flag.StringVar(&auditArchiveDir, "audit-archive-dir", os.Getenv("CUPEL_AUDIT_ARCHIVE_DIR"),
+		"directory to move older audit records into once the chain outgrows the threshold; "+
+			"empty disables archiving and the chain grows without limit")
+	flag.IntVar(&auditArchiveThreshold, "audit-archive-threshold", audit.DefaultThreshold,
+		"audit records held in the cluster before archiving runs")
+	flag.IntVar(&auditArchiveRetain, "audit-archive-retain", audit.DefaultRetain,
+		"audit records kept in the cluster after archiving runs")
+	flag.IntVar(&scanRetentionDays, "scan-retention-days", int(maintenance.DefaultMaxAge/(24*time.Hour)),
+		"days a finished scan is kept before it and its reports are removed; 0 keeps them forever")
+	flag.IntVar(&maintenanceMinutes, "maintenance-interval-minutes", 60,
+		"how often archiving and retention run")
 	flag.StringVar(&trustRootPath, "trust-root", os.Getenv("CUPEL_TRUST_ROOT"),
 		"path to a Sigstore trusted-root JSON file for signature verification; "+
 			"left empty, provenance reports that it cannot verify rather than fetching one over the network")
@@ -227,6 +244,44 @@ func main() {
 		// authenticated request rather than from the payload.
 		if err := (&cupelwebhook.PromotionSigner{}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to set up promotion signer")
+			os.Exit(1)
+		}
+	}
+
+	{
+		recorder := &audit.Recorder{Client: mgr.GetClient(), Namespace: auditNamespace}
+		archiver := &audit.Archiver{
+			Recorder:  recorder,
+			Threshold: auditArchiveThreshold,
+			Retain:    auditArchiveRetain,
+		}
+		if auditArchiveDir != "" {
+			archiver.Sink = audit.DirSink{Dir: auditArchiveDir}
+		} else {
+			// Say so once at startup. Without a destination the chain has
+			// nowhere to go, and the first anyone hears of it is an etcd quota
+			// alarm taking the cluster read-only.
+			setupLog.Info("audit archiving is off: the chain will grow for as long as this cluster scans",
+				"hint", "set --audit-archive-dir to a mounted volume",
+				"metric", "cupel_audit_chain_length")
+		}
+
+		retention := maintenance.DefaultMaxAge
+		if scanRetentionDays == 0 {
+			retention = -1
+		} else if scanRetentionDays > 0 {
+			retention = time.Duration(scanRetentionDays) * 24 * time.Hour
+		}
+
+		loop := &maintenance.Loop{
+			Archiver:  archiver,
+			Pruner:    &maintenance.Pruner{Client: mgr.GetClient(), MaxAge: retention},
+			Namespace: auditNamespace,
+			Interval:  time.Duration(maintenanceMinutes) * time.Minute,
+			Log:       ctrl.Log.WithName("maintenance"),
+		}
+		if err := mgr.Add(loop); err != nil {
+			setupLog.Error(err, "unable to start maintenance")
 			os.Exit(1)
 		}
 	}

@@ -118,6 +118,23 @@ func (r *Recorder) Chain(ctx context.Context) ([]Record, *Checkpoint, error) {
 		return nil, nil, err
 	}
 	cp := checkpointFromAPI(cpObj)
+
+	// Drop anything the archive boundary already covers.
+	//
+	// Archiving publishes the boundary before deleting the records it covers,
+	// so that an interrupted run leaves the records present rather than lost.
+	// The cost is a window where the store holds records that the log no longer
+	// counts as live. Returning them would make a chain that is exactly right
+	// look like one that starts in the wrong place.
+	if a := cp.Anchor(); a != nil && a.Length > 0 {
+		kept := records[:0]
+		for _, rec := range records {
+			if rec.Seq > a.Length {
+				kept = append(kept, rec)
+			}
+		}
+		records = kept
+	}
 	return records, cp, nil
 }
 

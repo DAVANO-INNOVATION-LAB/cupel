@@ -118,6 +118,62 @@ var (
 		},
 		[]string{"source", "connector"},
 	)
+
+	// AuditChainLength is how many records the chain holds, archived records
+	// included.
+	//
+	// This is the one number in Cupel that only ever goes up, and it is the
+	// one nobody thinks to watch. Left alone it ends in an out-of-memory kill
+	// or an etcd quota alarm, and neither announces itself in advance. Publish
+	// it so the growth is a line on a dashboard rather than an outage.
+	AuditChainLength = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "cupel_audit_chain_length",
+			Help: "Records in the audit chain, including any archived out of the cluster.",
+		},
+		[]string{"namespace"},
+	)
+
+	// AuditChainRetained is how many of those records are still stored in the
+	// cluster. The gap between this and the length is what has been archived.
+	AuditChainRetained = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "cupel_audit_chain_retained",
+			Help: "Audit records still held in the cluster, as opposed to archived.",
+		},
+		[]string{"namespace"},
+	)
+
+	// AuditArchiveRuns counts archive attempts by outcome.
+	//
+	// A failing archive is not urgent on the day it starts failing, which is
+	// precisely why it needs counting: nothing else about the system changes
+	// until the chain has grown back to the size that caused the problem.
+	AuditArchiveRuns = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cupel_audit_archive_runs_total",
+			Help: "Audit archive attempts, by outcome.",
+		},
+		[]string{"namespace", "outcome"},
+	)
+
+	// AuditRecordsArchived counts records written out of the cluster.
+	AuditRecordsArchived = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cupel_audit_records_archived_total",
+			Help: "Audit records written to the archive and removed from the cluster.",
+		},
+		[]string{"namespace"},
+	)
+
+	// ScanObjectsPruned counts scans and reports deleted by retention.
+	ScanObjectsPruned = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cupel_scan_objects_pruned_total",
+			Help: "ArtifactScans deleted by retention, with their reports.",
+		},
+		[]string{"namespace"},
+	)
 )
 
 // Register adds every Cupel metric to the controller-runtime registry, which
@@ -132,5 +188,10 @@ func Register() {
 		SourceSyncFailures,
 		ModelsTracked,
 		AuditWriteFailures,
+		AuditChainLength,
+		AuditChainRetained,
+		AuditArchiveRuns,
+		AuditRecordsArchived,
+		ScanObjectsPruned,
 	)
 }
