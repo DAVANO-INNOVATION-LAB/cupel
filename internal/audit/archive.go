@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -176,7 +178,7 @@ func (a *Archiver) Run(ctx context.Context) (int, error) {
 	if !bytes.Equal(readBack, data) {
 		return 0, fmt.Errorf("segment %s reads back differently than it was written; not deleting anything", name)
 	}
-	restored, err := decodeSegment(readBack)
+	restored, err := DecodeSegment(readBack)
 	if err != nil {
 		return 0, fmt.Errorf("segment %s does not parse after the round trip: %w", name, err)
 	}
@@ -298,7 +300,44 @@ func encodeSegment(records []Record) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func decodeSegment(data []byte) ([]Record, error) {
+// ReadArchive reads every segment in a directory, in sequence order, and
+// returns the records together with the segment names they came from.
+//
+// This is the auditor's path: a directory of segments and nothing else — no
+// cluster, no network, no credentials. The archive has to be checkable by
+// somebody who has only the archive.
+func ReadArchive(dir string) ([]Record, []string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	var names []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".jsonl") {
+			names = append(names, e.Name())
+		}
+	}
+	// Segment names lead with a zero-padded first sequence number, so sorting
+	// them lexically is sorting them by position in the chain.
+	sort.Strings(names)
+
+	var out []Record
+	for _, name := range names {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			return nil, names, fmt.Errorf("read %s: %w", name, err)
+		}
+		records, err := DecodeSegment(data)
+		if err != nil {
+			return nil, names, fmt.Errorf("parse %s: %w", name, err)
+		}
+		out = append(out, records...)
+	}
+	return out, names, nil
+}
+
+// DecodeSegment parses a segment written by the archiver.
+func DecodeSegment(data []byte) ([]Record, error) {
 	var out []Record
 	dec := json.NewDecoder(bytes.NewReader(data))
 	for dec.More() {

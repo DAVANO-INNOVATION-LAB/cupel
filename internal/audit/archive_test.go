@@ -118,7 +118,7 @@ func TestTheArchivedSegmentRoundTripsToTheSameRecords(t *testing.T) {
 	for _, v := range sink.data {
 		stored = v
 	}
-	restored, err := decodeSegment(stored)
+	restored, err := DecodeSegment(stored)
 	if err != nil {
 		t.Fatal(err)
 	}

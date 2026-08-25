@@ -55,6 +55,12 @@ func main() {
 	switch os.Args[1] {
 	case "inspect":
 		os.Exit(runInspect(os.Args[2:]))
+	case "audit":
+		if len(os.Args) < 3 || os.Args[2] != "verify" {
+			fmt.Fprint(os.Stderr, "usage: cupel audit verify <archive-dir>\n")
+			os.Exit(2)
+		}
+		os.Exit(runAuditVerify(os.Args[3:]))
 	case "version":
 		fmt.Println(version)
 	case "-h", "--help", "help":
@@ -71,7 +77,13 @@ func usage() {
 
 Usage:
   cupel inspect <path|uri> [--json] [--max-files N]
+  cupel audit verify <archive-dir> [--checkpoint FILE] [--json]
   cupel version
+
+cupel audit verify checks an archived audit chain from its segment files, with
+no cluster and no credentials. Pass --checkpoint to check it against the head
+that was published at the time; without one it can only show the archive is
+internally consistent, not that it is complete.
 
 cupel inspect scans a model for the ways an artifact can execute code: unsafe
 serialization (pickle and friends), archive escapes, executable payloads, and
