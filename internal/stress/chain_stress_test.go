@@ -6,13 +6,14 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -149,42 +150,56 @@ func TestConcurrentWritersProduceOneLinearChain(t *testing.T) {
 	}
 }
 
-// The claim behind the cache fix is that memory stops tracking chain length.
-// Measure what a retained chain actually costs in the process.
-func TestRetainedChainMemoryFootprint(t *testing.T) {
-	r, c := stressRecorder(t)
-	ctx := context.Background()
+// What an informer cache costs per audit record.
+//
+// This is the number behind the out-of-memory kill: the cache holds one of
+// these per record, for every record ever written, for as long as the process
+// runs. Measured in isolation, because the point is the resident size of the
+// objects themselves and nothing else.
+func TestWhatCachingTheChainWouldCost(t *testing.T) {
+	const n = 100_000
 
-	var before runtime.MemStats
 	runtime.GC()
+	var before runtime.MemStats
 	runtime.ReadMemStats(&before)
 
-	const n = 100_000
+	cache := make([]securityv1alpha1.AuditRecord, 0, n)
 	for i := 0; i < n; i++ {
-		if _, err := r.Append(ctx, audit.VerdictIssued(
-			fmt.Sprintf("model-%d", i), "v1", "Approved", 12, "sha256:abcdef")); err != nil {
-			t.Fatal(err)
-		}
+		cache = append(cache, securityv1alpha1.AuditRecord{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("audit-%012d", i+1),
+				Namespace: "cupel-system",
+				Labels:    map[string]string{"security.davano.io/audit-type": "verdict-issued"},
+			},
+			Spec: securityv1alpha1.AuditRecordSpec{
+				Seq: int64(i + 1), Type: "verdict-issued",
+				Subject: fmt.Sprintf("model-%d/v1", i), Actor: "system",
+				Detail:   map[string]string{"verdict": "Approved", "risk": "12", "digest": "sha256:abcdef"},
+				PrevHash: strings.Repeat("a", 64), Hash: strings.Repeat("b", 64),
+			},
+		})
 	}
 
-	var after runtime.MemStats
 	runtime.GC()
+	var after runtime.MemStats
 	runtime.ReadMemStats(&after)
+	runtime.KeepAlive(cache)
 
-	perRecord := float64(after.HeapAlloc-before.HeapAlloc) / float64(n)
-	t.Logf("%d records held in the store: %.1f MiB heap, %.0f bytes per record",
-		n, float64(after.HeapAlloc-before.HeapAlloc)/(1<<20), perRecord)
-
-	// Extrapolate the failure the audit predicted, against a 512Mi limit.
-	atLimit := (512 << 20) / perRecord
-	t.Logf("at %.0f bytes each, a 512Mi process would hold about %.0f records", perRecord, atLimit)
-
-	// The number that matters is not this one — it is that the manager no
-	// longer holds them at all. Confirm the exclusion is still in force.
-	opts := audit.ClientOptions()
-	if opts.Cache == nil || len(opts.Cache.DisableFor) == 0 {
-		t.Fatal("the manager would cache this")
+	delta := int64(after.HeapAlloc) - int64(before.HeapAlloc)
+	if delta <= 0 {
+		t.Skipf("heap measurement unstable (delta %d)", delta)
 	}
-	_ = c
-	_ = schema.GroupVersionKind{}
+	per := float64(delta) / float64(n)
+	limit := (512 << 20) / per
+	t.Logf("%d cached records cost %.0f MiB, %.0f bytes each", n, float64(delta)/(1<<20), per)
+	t.Logf("a 512Mi manager caching these would die at roughly %.0f records", limit)
+
+	// A cluster scanning 200 model versions a week writes two records each.
+	weeks := limit / (200 * 2)
+	t.Logf("at 200 model versions a week that is about %.0f weeks before the manager "+
+		"restarts and cannot come back", weeks)
+
+	if opts := audit.ClientOptions(); opts.Cache == nil || len(opts.Cache.DisableFor) == 0 {
+		t.Fatal("the manager still caches the chain: this is a live failure, not a measurement")
+	}
 }

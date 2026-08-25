@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +26,28 @@ import (
 type Sink interface {
 	Put(ctx context.Context, name string, data []byte) (location string, err error)
 	Get(ctx context.Context, name string) ([]byte, error)
+}
+
+// remover is implemented by sinks that can delete a segment again.
+//
+// A segment that fails its read-back is junk, and it will never become
+// anything else. Left in place it is worse than absent: the records it should
+// hold are still safe in the cluster, but every later read of the archive trips
+// over the damaged file, so a transient write failure turns into an archive
+// that permanently will not verify.
+type remover interface {
+	Remove(ctx context.Context, name string) error
+}
+
+// discard removes a segment that could not be trusted, and says so if it
+// cannot. Failing to clean up does not fail the run: the records are still in
+// the cluster either way, which is the property that matters.
+func discard(ctx context.Context, sink Sink, name string) error {
+	r, ok := sink.(remover)
+	if !ok {
+		return nil
+	}
+	return r.Remove(ctx, name)
 }
 
 // DirSink writes segments to a directory.
@@ -54,6 +76,16 @@ func (d DirSink) Put(_ context.Context, name string, data []byte) (string, error
 
 func (d DirSink) Get(_ context.Context, name string) ([]byte, error) {
 	return os.ReadFile(filepath.Join(d.Dir, name))
+}
+
+// Remove deletes a segment. Used only to clean up one that failed its
+// read-back; nothing removes a segment that verified.
+func (d DirSink) Remove(_ context.Context, name string) error {
+	err := os.Remove(filepath.Join(d.Dir, name))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 // Archiver moves the front of the chain out of the cluster.
@@ -173,38 +205,34 @@ func (a *Archiver) Run(ctx context.Context) (int, error) {
 	// records have been deleted and someone needs them.
 	readBack, err := a.Sink.Get(ctx, name)
 	if err != nil {
-		return 0, fmt.Errorf("segment %s was written but cannot be read back: %w", name, err)
+		return 0, a.reject(ctx, name, fmt.Errorf("segment %s was written but cannot be read back: %w", name, err))
 	}
 	if !bytes.Equal(readBack, data) {
-		return 0, fmt.Errorf("segment %s reads back differently than it was written; not deleting anything", name)
+		return 0, a.reject(ctx, name, fmt.Errorf(
+			"segment %s reads back differently than it was written; not deleting anything", name))
 	}
 	restored, err := DecodeSegment(readBack)
 	if err != nil {
-		return 0, fmt.Errorf("segment %s does not parse after the round trip: %w", name, err)
+		return 0, a.reject(ctx, name, fmt.Errorf("segment %s does not parse after the round trip: %w", name, err))
 	}
 	if v := VerifyFrom(restored, anchor, nil); !v.Valid {
-		return 0, fmt.Errorf("segment %s does not verify after the round trip: %v", name, v.Problems)
+		return 0, a.reject(ctx, name, fmt.Errorf(
+			"segment %s does not verify after the round trip: %v", name, v.Problems))
 	}
 
 	// Publish the boundary before deleting. If the process stops here, the
 	// records are still in the cluster and the next run's sweep removes them.
+	//
+	// Only the boundary moves. The head belongs to whatever is appending, which
+	// is still appending: writing a whole checkpoint here would carry a head
+	// that is already stale and be refused as a regression.
 	last := segment[len(segment)-1]
-	newCP := Checkpoint{
-		Length: cp.Length,
-		Head:   cp.Head,
-		Time:   time.Now().UTC().Truncate(time.Second),
-		Archived: &Anchor{
-			Length:   last.Seq,
-			Head:     last.Hash,
-			Location: location,
-		},
-	}
-	if cp == nil {
-		newCP.Length = last.Seq
-		newCP.Head = last.Hash
-	}
-	if err := a.Recorder.putCheckpoint(ctx, newCP); err != nil {
-		return 0, fmt.Errorf("publish archive boundary: %w", err)
+	if err := a.Recorder.advanceBoundary(ctx, Anchor{
+		Length:   last.Seq,
+		Head:     last.Hash,
+		Location: location,
+	}); err != nil {
+		return 0, err
 	}
 
 	deleted, err := a.deleteThrough(ctx, segment[0].Seq, last.Seq)
@@ -212,6 +240,14 @@ func (a *Archiver) Run(ctx context.Context) (int, error) {
 		return deleted, fmt.Errorf("delete archived records: %w", err)
 	}
 	return deleted, nil
+}
+
+// reject discards a segment that could not be trusted and returns why.
+func (a *Archiver) reject(ctx context.Context, name string, cause error) error {
+	if err := discard(ctx, a.Sink, name); err != nil {
+		return fmt.Errorf("%w (and the unusable segment could not be removed: %v)", cause, err)
+	}
+	return cause
 }
 
 // sweep deletes records already covered by a published boundary, which is what

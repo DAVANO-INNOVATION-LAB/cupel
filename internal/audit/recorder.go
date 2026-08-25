@@ -247,6 +247,50 @@ func (r *Recorder) checkpoint(ctx context.Context, records []Record) error {
 	return r.putCheckpoint(ctx, Head(records))
 }
 
+// advanceBoundary moves the archive boundary without touching the head.
+//
+// The head and the boundary are separate facts written by different actors:
+// appends move the head, archiving moves the boundary, and they run at the same
+// time. Publishing a whole checkpoint from the archiver would carry whatever
+// head it read when it started, which by the time it writes is behind — and the
+// regression guard, correctly, refuses that. The effect was that archiving
+// failed on every run of a cluster that was doing anything, which is every
+// cluster that needs it.
+func (r *Recorder) advanceBoundary(ctx context.Context, a Anchor) error {
+	const attempts = 5
+	for i := 0; i < attempts; i++ {
+		var existing securityv1alpha1.AuditCheckpoint
+		err := r.Client.Get(ctx, client.ObjectKey{Name: CheckpointName, Namespace: r.Namespace}, &existing)
+		if err != nil {
+			return fmt.Errorf("read checkpoint: %w", err)
+		}
+		// The same rule as the head: a boundary that can move backwards would
+		// claim records are still in the cluster after they have been deleted.
+		if existing.Spec.ArchivedLength > int64(a.Length) {
+			return fmt.Errorf("refusing to regress the archive boundary from %d to %d records",
+				existing.Spec.ArchivedLength, a.Length)
+		}
+		if existing.Spec.Length < int64(a.Length) {
+			return fmt.Errorf("refusing to archive past the head: the checkpoint records %d "+
+				"records and the boundary would cover %d", existing.Spec.Length, a.Length)
+		}
+		existing.Spec.ArchivedLength = int64(a.Length)
+		existing.Spec.ArchivedHead = a.Head
+		existing.Spec.ArchiveLocation = a.Location
+
+		err = r.Client.Update(ctx, &existing)
+		if err == nil {
+			return nil
+		}
+		if !apierrors.IsConflict(err) {
+			return fmt.Errorf("publish archive boundary: %w", err)
+		}
+		// An append moved the head while we were writing. Re-read and reapply:
+		// the boundary we are setting is unaffected by where the head got to.
+	}
+	return fmt.Errorf("publish archive boundary: the checkpoint was being written throughout")
+}
+
 // putCheckpoint publishes a head that has already been computed.
 func (r *Recorder) putCheckpoint(ctx context.Context, cp Checkpoint) error {
 	obj := &securityv1alpha1.AuditCheckpoint{
