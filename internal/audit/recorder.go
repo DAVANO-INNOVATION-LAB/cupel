@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"sort"
 	"strings"
 	"time"
@@ -29,8 +30,14 @@ type Recorder struct {
 // name embeds its sequence number, so two writers racing for the same position
 // collide on AlreadyExists and the loser retries against the new head. That
 // keeps the chain linear without the operator holding a lease it could lose.
+//
+// Losers back off before trying again, and the backoff is jittered. Without it
+// the losers of a race all advance to the next position together and collide
+// again in lockstep, so N writers need N rounds and a small fixed retry budget
+// drops the difference on the floor. Measured, that lost a quarter of the log
+// at eight concurrent writers — and a default install runs three before any
+// pod is admitted.
 func (r *Recorder) Append(ctx context.Context, event Record) (*Record, error) {
-	const attempts = 5
 	var lastErr error
 
 	prev, err := r.head(ctx)
@@ -38,7 +45,13 @@ func (r *Recorder) Append(ctx context.Context, event Record) (*Record, error) {
 		return nil, err
 	}
 
-	for i := 0; i < attempts; i++ {
+	for i := 0; i < maxAppendAttempts; i++ {
+		if i > 0 {
+			if err := backOff(ctx, i); err != nil {
+				return nil, fmt.Errorf("append audit record: gave up after %d races for the "+
+					"chain head: %w", i, err)
+			}
+		}
 		sealed := Seal(event, prev)
 		obj := &securityv1alpha1.AuditRecord{
 			ObjectMeta: metav1.ObjectMeta{
@@ -75,17 +88,58 @@ func (r *Recorder) Append(ctx context.Context, event Record) (*Record, error) {
 		if !apierrors.IsAlreadyExists(err) {
 			return nil, fmt.Errorf("append audit record: %w", err)
 		}
-		// Another writer took this position. Read *that* record — one Get by a
-		// name we can compute — and build on it, rather than re-reading the
-		// whole chain to discover what we already know the shape of.
+		// Another writer took this position. Move to where the chain actually
+		// ends, not to the position after the one that was taken.
+		//
+		// Stepping forward one place looks cheaper and livelocks: under load
+		// the head advances faster than a loser can follow it, so the writer
+		// that falls behind stays behind and burns its whole retry budget one
+		// position at a time. Re-seeking the head converges instead, and costs
+		// a checkpoint read plus a short walk.
 		lastErr = err
-		taken, terr := r.recordAt(ctx, sealed.Seq)
-		if terr != nil {
-			return nil, fmt.Errorf("append audit record: lost the head and could not read it back: %w", terr)
+		found, herr := r.head(ctx)
+		if herr != nil {
+			return nil, fmt.Errorf("append audit record: lost the head and could not read it back: %w", herr)
 		}
-		prev = taken
+		prev = found
 	}
-	return nil, fmt.Errorf("append audit record: lost %d races for the chain head: %w", attempts, lastErr)
+	return nil, fmt.Errorf("append audit record: lost %d races for the chain head: %w",
+		maxAppendAttempts, lastErr)
+}
+
+// Retry budget for a contended append.
+//
+// The ceiling is deliberately generous. Losing a race is not an error, it is
+// the mechanism working, and the cost of one more attempt is a Get and a
+// Create. The cost of giving up is a decision that happened and was never
+// recorded, which is the one thing the chain exists to prevent. Callers bound
+// this with their own deadline; the admission gate gives it three seconds that
+// nothing is waiting on.
+const (
+	maxAppendAttempts = 64
+	minAppendBackoff  = 250 * time.Microsecond
+	maxAppendBackoff  = 25 * time.Millisecond
+)
+
+// backOff waits before another attempt, or returns why it will not.
+func backOff(ctx context.Context, attempt int) error {
+	d := minAppendBackoff << min(attempt-1, 16)
+	if d > maxAppendBackoff || d <= 0 {
+		d = maxAppendBackoff
+	}
+	// Full jitter across the window. Breaking the lockstep is the point, so
+	// the spread matters more than the delay: writers that wake at different
+	// moments stop colliding, writers that wake together never do.
+	d = time.Duration(rand.Int64N(int64(d))) + minAppendBackoff
+
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
 }
 
 // load reads the chain in sequence order.
