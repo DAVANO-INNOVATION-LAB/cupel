@@ -3,7 +3,7 @@ module github.com/DAVANO-INNOVATION-LAB/cupel
 go 1.25.8
 
 require (
-	github.com/DAVANO-INNOVATION-LAB/tessera v1.0.2
+	github.com/DAVANO-INNOVATION-LAB/tessera v1.1.0
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/prometheus/client_golang v1.24.1
@@ -50,7 +50,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
-	github.com/go-logr/logr v1.4.4 // indirect
+	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/analysis v0.25.5 // indirect

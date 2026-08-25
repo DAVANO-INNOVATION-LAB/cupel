@@ -30,10 +30,8 @@ github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v1.2.0 h1:nCYfg
 github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v1.2.0/go.mod h1:ucUjca2JtSZboY8IoUqyQyuuXvwbMBVwFOm0vdQPNhA=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.7.0 h1:4iB+IesclUXdP0ICgAabvq2FYLXrJWKx1fJQ+GxSo3Y=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.7.0/go.mod h1:HKpQxkWaGLJ+D/5H8QRpyQXA1eKjxkFlOMwck5+33Jk=
-github.com/DAVANO-INNOVATION-LAB/tessera v1.0.2 h1:g2v8YjfOD2cAaz9moBkf5dCg3PCyz5F8TFEIArF9SMc=
-github.com/DAVANO-INNOVATION-LAB/tessera v1.0.2/go.mod h1:yBfp9396Jbf8Z+BoeaPDQm/xI8lBzwwMfyztrJ47OjE=
-github.com/DAVANO-INNOVATION-LAB/tessera/fetch v1.0.0 h1:x2BvEIx0qO2idQ4ggUm8N0tIzV3IaTqEgLVWcHvg/O4=
-github.com/DAVANO-INNOVATION-LAB/tessera/fetch v1.0.0/go.mod h1:GYoXQC+8JY4T9XxZgbrQTQIQkmuGduHuhNBx7C0prKw=
+github.com/DAVANO-INNOVATION-LAB/tessera v1.1.0 h1:1Tcz/q1Gj3wIl9IUDOl0Nw66XGnabHpXxfPtBhoMIIg=
+github.com/DAVANO-INNOVATION-LAB/tessera v1.1.0/go.mod h1:yBfp9396Jbf8Z+BoeaPDQm/xI8lBzwwMfyztrJ47OjE=
 github.com/DAVANO-INNOVATION-LAB/tessera/fetch v1.0.1 h1:QNjYCzRY+akTwtP1jtN03VZdkiXIrHYE/PdjnNoOUh4=
 github.com/DAVANO-INNOVATION-LAB/tessera/fetch v1.0.1/go.mod h1:GYoXQC+8JY4T9XxZgbrQTQIQkmuGduHuhNBx7C0prKw=
 github.com/DAVANO-INNOVATION-LAB/tessera/sigstore v1.0.0 h1:WQdtg1oYtztiQPALtQCboVUbdbXn23wmsu2KUlrMao8=
