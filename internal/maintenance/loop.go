@@ -94,15 +94,11 @@ func (l *Loop) observe(ctx context.Context) {
 	if l.Archiver == nil || l.Archiver.Recorder == nil {
 		return
 	}
-	records, cp, err := l.Archiver.Recorder.Chain(ctx)
+	length, retained, err := l.Archiver.Recorder.Size(ctx)
 	if err != nil {
 		l.Log.Error(err, "could not measure the audit chain")
 		return
 	}
-	length := uint64(len(records))
-	if a := cp.Anchor(); a != nil {
-		length += a.Length
-	}
 	metrics.AuditChainLength.WithLabelValues(l.Namespace).Set(float64(length))
-	metrics.AuditChainRetained.WithLabelValues(l.Namespace).Set(float64(len(records)))
+	metrics.AuditChainRetained.WithLabelValues(l.Namespace).Set(float64(retained))
 }

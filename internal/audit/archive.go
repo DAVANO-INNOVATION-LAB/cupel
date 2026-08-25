@@ -11,6 +11,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 )
@@ -112,20 +113,28 @@ func SegmentName(first, last uint64) string {
 // the archive, or a boundary that the next run's sweep finishes acting on.
 // Nothing in the sequence can lose a record.
 func (a *Archiver) Run(ctx context.Context) (int, error) {
+	// Finish any deletion a previous run did not get to, before anything else.
+	// Until that is clear the boundary and the stored records disagree, and the
+	// disagreement is invisible: the reader already hides records below the
+	// boundary, so the only symptom is storage that never goes down.
+	if err := a.sweep(ctx); err != nil {
+		return 0, err
+	}
+
+	// Ask how big the chain is before reading it. Most runs have nothing to do,
+	// and listing every record hourly to find that out would be a steady cost
+	// paid for no result — on the very type this exists to keep small.
+	_, retained, err := a.Recorder.Size(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("measure chain: %w", err)
+	}
+	if retained <= uint64(a.threshold()) {
+		return 0, nil
+	}
+
 	records, cp, err := a.Recorder.Chain(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("read chain: %w", err)
-	}
-
-	// Finish any deletion a previous run did not get to before doing anything
-	// new. Until this is clear, the boundary and the stored records disagree.
-	if swept, err := a.sweep(ctx, cp); err != nil {
-		return 0, err
-	} else if swept > 0 {
-		records, cp, err = a.Recorder.Chain(ctx)
-		if err != nil {
-			return 0, fmt.Errorf("re-read chain after sweep: %w", err)
-		}
 	}
 
 	if len(records) <= a.threshold() {
@@ -205,12 +214,53 @@ func (a *Archiver) Run(ctx context.Context) (int, error) {
 
 // sweep deletes records already covered by a published boundary, which is what
 // a run interrupted between publishing and deleting leaves behind.
-func (a *Archiver) sweep(ctx context.Context, cp *Checkpoint) (int, error) {
+//
+// The common case is that there is nothing to do, and it has to stay cheap:
+// this runs every hour for the life of the cluster. Deletion goes in sequence
+// order, so if the last covered record is gone the pass finished, and one Get
+// settles it. Only when it is still there does anything list.
+func (a *Archiver) sweep(ctx context.Context) error {
+	cp, err := a.Recorder.readCheckpoint(ctx)
+	if err != nil {
+		return fmt.Errorf("read checkpoint: %w", err)
+	}
 	anchor := cp.Anchor()
 	if anchor == nil || anchor.Length == 0 {
-		return 0, nil
+		return nil
 	}
-	return a.deleteThrough(ctx, 1, anchor.Length)
+
+	var last securityv1alpha1.AuditRecord
+	err = a.Recorder.Client.Get(ctx, client.ObjectKey{
+		Name: recordName(anchor.Length), Namespace: a.Recorder.Namespace,
+	}, &last)
+	switch {
+	case apierrors.IsNotFound(err):
+		return nil // the previous pass finished
+	case err != nil:
+		return err
+	}
+
+	// Delete what is actually there rather than walking the whole range: after
+	// a partial pass most of the range is already gone, and blindly issuing a
+	// delete per sequence number would mean millions of calls that do nothing.
+	stored, err := a.Recorder.load(ctx)
+	if err != nil {
+		return err
+	}
+	for _, rec := range stored {
+		if rec.Seq > anchor.Length {
+			continue
+		}
+		obj := &securityv1alpha1.AuditRecord{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: recordName(rec.Seq), Namespace: a.Recorder.Namespace,
+			},
+		}
+		if err := a.Recorder.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
 }
 
 // deleteThrough removes records in [first, last] by their computed names.

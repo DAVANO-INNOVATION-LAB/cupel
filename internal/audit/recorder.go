@@ -138,6 +138,47 @@ func (r *Recorder) Chain(ctx context.Context) ([]Record, *Checkpoint, error) {
 	return records, cp, nil
 }
 
+// readCheckpoint reads the published checkpoint, or nil when there is none.
+func (r *Recorder) readCheckpoint(ctx context.Context) (*Checkpoint, error) {
+	var obj securityv1alpha1.AuditCheckpoint
+	err := r.Client.Get(ctx, client.ObjectKey{Name: CheckpointName, Namespace: r.Namespace}, &obj)
+	switch {
+	case apierrors.IsNotFound(err):
+		return nil, nil
+	case err != nil:
+		return nil, err
+	}
+	return checkpointFromAPI(obj), nil
+}
+
+// Size reports the length of the chain and how much of it is still stored,
+// without reading the records.
+//
+// Both numbers are in the checkpoint already, which matters because the caller
+// is usually asking in order to watch for growth: listing tens of thousands of
+// records every time somebody wants to know how many there are would be its own
+// small version of the problem being measured.
+func (r *Recorder) Size(ctx context.Context) (length, retained uint64, err error) {
+	var cpObj securityv1alpha1.AuditCheckpoint
+	err = r.Client.Get(ctx, client.ObjectKey{Name: CheckpointName, Namespace: r.Namespace}, &cpObj)
+	switch {
+	case apierrors.IsNotFound(err):
+		// No checkpoint yet means no appends yet, or a chain written by
+		// something that never published one. Counting is the only honest
+		// answer, and at this point there is nothing much to count.
+		records, err := r.load(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		return uint64(len(records)), uint64(len(records)), nil
+	case err != nil:
+		return 0, 0, err
+	}
+	length = uint64(cpObj.Spec.Length)
+	retained = length - uint64(cpObj.Spec.ArchivedLength)
+	return length, retained, nil
+}
+
 // Verify checks the stored chain against its published checkpoint.
 func (r *Recorder) Verify(ctx context.Context) (Verification, error) {
 	records, cp, err := r.Chain(ctx)
