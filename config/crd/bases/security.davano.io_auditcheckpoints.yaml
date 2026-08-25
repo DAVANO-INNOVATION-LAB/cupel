@@ -21,6 +21,9 @@ spec:
     - jsonPath: .spec.head
       name: Head
       type: string
+    - jsonPath: .spec.archivedLength
+      name: Archived
+      type: integer
     - jsonPath: .spec.time
       name: Time
       type: date
@@ -54,6 +57,27 @@ spec:
               cluster — in a signed evidence bundle, or an auditor's own records — is what
               makes the log tamper-evident against someone who controls the cluster.
             properties:
+              archiveLocation:
+                description: |-
+                  ArchiveLocation is where the archived records were written, so a reader
+                  who needs the whole chain knows there is more of it and where to look.
+                type: string
+              archivedHead:
+                description: |-
+                  ArchivedHead is the hash of the last archived record: the point the
+                  records still in the cluster attach to.
+                type: string
+              archivedLength:
+                description: |-
+                  ArchivedLength is how many records from the front of the chain have been
+                  written out of the cluster and deleted from it. Zero means the whole
+                  chain is still here.
+
+                  Length above stays the length of the whole chain, archived records
+                  included, so a checkpoint means the same thing before and after an
+                  archive runs.
+                format: int64
+                type: integer
               head:
                 description: Head is the hash of the final record.
                 type: string

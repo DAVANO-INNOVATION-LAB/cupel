@@ -647,18 +647,14 @@ func runBuildEvidence(ctx context.Context, args []string) error {
 		in.Acceptances = append(in.Acceptances, acc)
 	}
 
-	// The audit chain, filtered to this subject, plus the checkpoint for the
-	// whole log — the checkpoint is what makes a truncated tail detectable, so
-	// it is included even though it covers more than this subject.
+	// The whole chain and its checkpoint. Build verifies the chain and then
+	// excerpts this subject's entries; filtering here first would hand it a
+	// scattered set of records and ask whether they form a chain.
 	recorder := &audit.Recorder{Client: k8s, Namespace: *namespace}
 	if records, cp, err := recorder.Chain(ctx); err == nil {
-		subject := audit.Subject(scan.Spec.ModelName, scan.Spec.ModelVersion)
-		for _, rec := range records {
-			if rec.Subject == subject {
-				in.AuditRecords = append(in.AuditRecords, rec)
-			}
-		}
+		in.AuditChain = records
 		in.AuditCheckpoint = cp
+		in.AuditAnchor = cp.Anchor()
 	}
 
 	bundle, err := evidence.Build(in)

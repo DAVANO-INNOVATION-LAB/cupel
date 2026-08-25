@@ -184,6 +184,38 @@ type Checkpoint struct {
 	Head string `json:"head"`
 	// Time the checkpoint was taken.
 	Time time.Time `json:"time"`
+	// Archived describes the front of the chain, once it has been written out
+	// of the cluster and deleted from it. Nil while the whole chain is still
+	// present. Length above counts the archived records either way.
+	Archived *Anchor `json:"archived,omitempty"`
+}
+
+// Anchor returns the point the retained records attach to, or nil when the
+// chain is whole.
+func (c *Checkpoint) Anchor() *Anchor {
+	if c == nil {
+		return nil
+	}
+	return c.Archived
+}
+
+// Anchor describes the stretch of chain that comes before the records being
+// verified, for a log whose older records no longer sit alongside the newer
+// ones.
+//
+// It is the same pair of facts a checkpoint carries — a length and a head hash
+// — read from the other end: a checkpoint says "the chain reached here", an
+// anchor says "the chain had already reached here when these records began".
+// Holding one lets a suffix be verified on its own terms instead of being
+// mistaken for a chain that starts at one.
+type Anchor struct {
+	// Length is how many records precede the ones being verified.
+	Length uint64 `json:"length"`
+	// Head is the hash of the last record before them.
+	Head string `json:"head"`
+	// Location says where the preceding records were put, so a reader who
+	// needs the whole chain knows where to go for the rest of it.
+	Location string `json:"location,omitempty"`
 }
 
 // Verification is the outcome of checking a chain.
@@ -191,8 +223,13 @@ type Verification struct {
 	// Valid is true only when every record links and hashes correctly and any
 	// supplied checkpoint is satisfied.
 	Valid bool `json:"valid"`
-	// Length of the chain examined.
+	// Length of the whole chain, including any records covered by an anchor
+	// rather than walked. This is what a checkpoint records, so it is what a
+	// checkpoint can be compared against.
 	Length uint64 `json:"length"`
+	// Anchored is how many records were taken on trust from an anchor instead
+	// of being read. Zero when the chain was verified from its beginning.
+	Anchored uint64 `json:"anchored,omitempty"`
 	// Head hash of the chain examined.
 	Head string `json:"head"`
 	// Problems describes what failed, in chain order.
@@ -206,15 +243,37 @@ type Verification struct {
 // previously published", which is the only way to catch a truncated tail or a
 // wholesale rewrite.
 func Verify(records []Record, checkpoint *Checkpoint) Verification {
+	return VerifyFrom(records, nil, checkpoint)
+}
+
+// VerifyFrom walks a chain that begins after an anchor.
+//
+// A nil anchor means the records are the whole chain and must start at the
+// beginning, which is what Verify asks for. A non-nil anchor means they are a
+// suffix: the first of them has to follow the anchored head, and the total
+// length counts the anchored records as well, so a checkpoint taken over the
+// whole log still applies.
+//
+// The anchor is trusted, not proven. Whatever produced it is what a reader is
+// relying on when the older records are not present to be read.
+func VerifyFrom(records []Record, anchor *Anchor, checkpoint *Checkpoint) Verification {
 	v := Verification{Valid: true, Head: GenesisHash}
 
+	var offset uint64
 	prevHash := GenesisHash
+	if anchor != nil {
+		offset = anchor.Length
+		prevHash = anchor.Head
+		v.Anchored = anchor.Length
+		v.Head = anchor.Head
+	}
+
 	for i, r := range records {
-		wantSeq := uint64(i + 1)
+		wantSeq := offset + uint64(i+1)
 		if r.Seq != wantSeq {
 			v.Problems = append(v.Problems, fmt.Sprintf(
 				"record %d claims sequence %d: a record was inserted, removed, or reordered",
-				i+1, r.Seq))
+				wantSeq, r.Seq))
 			v.Valid = false
 		}
 		if r.PrevHash != prevHash {
@@ -232,7 +291,7 @@ func Verify(records []Record, checkpoint *Checkpoint) Verification {
 		prevHash = r.Hash
 	}
 
-	v.Length = uint64(len(records))
+	v.Length = offset + uint64(len(records))
 	v.Head = prevHash
 
 	if checkpoint != nil {

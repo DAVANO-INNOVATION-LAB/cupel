@@ -117,11 +117,7 @@ func (r *Recorder) Chain(ctx context.Context) ([]Record, *Checkpoint, error) {
 	case err != nil:
 		return nil, nil, err
 	}
-	cp := &Checkpoint{
-		Length: uint64(cpObj.Spec.Length),
-		Head:   cpObj.Spec.Head,
-		Time:   cpObj.Spec.Time.Time,
-	}
+	cp := checkpointFromAPI(cpObj)
 	return records, cp, nil
 }
 
@@ -143,11 +139,7 @@ func (r *Recorder) checkpoint(ctx context.Context, records []Record) error {
 func (r *Recorder) putCheckpoint(ctx context.Context, cp Checkpoint) error {
 	obj := &securityv1alpha1.AuditCheckpoint{
 		ObjectMeta: metav1.ObjectMeta{Name: CheckpointName, Namespace: r.Namespace},
-		Spec: securityv1alpha1.AuditCheckpointSpec{
-			Length: int64(cp.Length),
-			Head:   cp.Head,
-			Time:   metav1.NewTime(cp.Time),
-		},
+		Spec:       specFromCheckpoint(cp),
 	}
 
 	var existing securityv1alpha1.AuditCheckpoint
@@ -164,8 +156,54 @@ func (r *Recorder) putCheckpoint(ctx context.Context, cp Checkpoint) error {
 		return fmt.Errorf("refusing to regress the checkpoint from %d to %d records",
 			existing.Spec.Length, obj.Spec.Length)
 	}
+	// The same rule for the archive boundary, and for the same reason. Moving
+	// it backwards would claim records are still in the cluster after they have
+	// been deleted from it, which is exactly what a truncation looks like.
+	if existing.Spec.ArchivedLength > obj.Spec.ArchivedLength && obj.Spec.ArchivedLength > 0 {
+		return fmt.Errorf("refusing to regress the archive boundary from %d to %d records",
+			existing.Spec.ArchivedLength, obj.Spec.ArchivedLength)
+	}
+	// An ordinary append knows the head but nothing about archiving, so it
+	// leaves these fields empty. Taking them at face value would erase the
+	// boundary and strand every retained record: they would appear to start
+	// partway through a chain with nothing to say why.
+	if obj.Spec.ArchivedLength == 0 {
+		obj.Spec.ArchivedLength = existing.Spec.ArchivedLength
+		obj.Spec.ArchivedHead = existing.Spec.ArchivedHead
+		obj.Spec.ArchiveLocation = existing.Spec.ArchiveLocation
+	}
 	existing.Spec = obj.Spec
 	return r.Client.Update(ctx, &existing)
+}
+
+func checkpointFromAPI(obj securityv1alpha1.AuditCheckpoint) *Checkpoint {
+	cp := &Checkpoint{
+		Length: uint64(obj.Spec.Length),
+		Head:   obj.Spec.Head,
+		Time:   obj.Spec.Time.Time,
+	}
+	if obj.Spec.ArchivedLength > 0 {
+		cp.Archived = &Anchor{
+			Length:   uint64(obj.Spec.ArchivedLength),
+			Head:     obj.Spec.ArchivedHead,
+			Location: obj.Spec.ArchiveLocation,
+		}
+	}
+	return cp
+}
+
+func specFromCheckpoint(cp Checkpoint) securityv1alpha1.AuditCheckpointSpec {
+	spec := securityv1alpha1.AuditCheckpointSpec{
+		Length: int64(cp.Length),
+		Head:   cp.Head,
+		Time:   metav1.NewTime(cp.Time),
+	}
+	if cp.Archived != nil {
+		spec.ArchivedLength = int64(cp.Archived.Length)
+		spec.ArchivedHead = cp.Archived.Head
+		spec.ArchiveLocation = cp.Archived.Location
+	}
+	return spec
 }
 
 func fromAPI(item securityv1alpha1.AuditRecord) Record {

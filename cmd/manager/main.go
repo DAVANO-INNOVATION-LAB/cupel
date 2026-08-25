@@ -122,6 +122,7 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "cupel-model-scanner.security.davano.io",
+		Client:                 audit.ClientOptions(),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

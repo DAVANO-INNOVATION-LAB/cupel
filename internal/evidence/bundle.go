@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
@@ -142,25 +143,71 @@ type ControlMapping struct {
 	AttestationRequired int `json:"attestationRequired"`
 }
 
-// AuditSection carries the tamper-evident chain.
+// AuditSection carries this subject's entries from the tamper-evident chain.
+//
+// What it holds is an excerpt, not a chain. A model's records are scattered
+// through a log shared with every other model in the cluster, so they are not
+// contiguous and do not begin at the first record. Two different things can be
+// said about them, and keeping them apart is the whole point of this section:
+// each record proves its own contents, and only the full chain proves that
+// none of them were removed.
 type AuditSection struct {
-	// Records concerning this subject.
+	// Records concerning this subject, in chain order.
 	Records []audit.Record `json:"records,omitempty"`
+	// RecordsIntact reports whether every excerpted record still hashes to the
+	// hash it carries. This is checkable from the bundle alone, offline, and
+	// is what says the entries below have not been edited since they were
+	// written.
+	RecordsIntact bool `json:"recordsIntact"`
 	// Checkpoint is the head of the full chain at bundle time. Anchoring this
 	// externally is what makes truncation detectable later.
 	Checkpoint *audit.Checkpoint `json:"checkpoint,omitempty"`
-	// ChainValid is the verification result at bundle time.
+	// Anchor names the stretch of chain that had been archived away by bundle
+	// time, so a reader who wants to check the whole log knows there is more
+	// of it and where it went.
+	Anchor *audit.Anchor `json:"anchor,omitempty"`
+	// ChainValid is whether the full chain verified when this bundle was made.
+	//
+	// It cannot be rechecked from the bundle, because the bundle does not carry
+	// the other subjects' records. It is the producer's finding, and a reader
+	// who needs to confirm it has to go to the chain itself. ChainLength and
+	// the checkpoint are here so that they can.
 	//
 	// An empty chain verifies vacuously, so this being true says nothing on
 	// its own about whether a trail exists. Present distinguishes the two.
 	ChainValid bool `json:"chainValid"`
+	// ChainLength is how long the full chain was at bundle time, including any
+	// archived records covered by the anchor.
+	ChainLength uint64 `json:"chainLength"`
 	// Present reports whether there is an audit trail for this subject at all.
 	// Without it, "audit: intact" over zero records reads as an assurance
 	// rather than as an absence, which is the misreading a reader of an
 	// evidence bundle is least able to check.
 	Present bool `json:"present"`
-	// ChainProblems records why, when it is not.
+	// ChainProblems records what was wrong with the full chain, when it was.
 	ChainProblems []string `json:"chainProblems,omitempty"`
+}
+
+// excerptFor picks out one subject's records, preserving chain order.
+func excerptFor(chain []audit.Record, subject string) []audit.Record {
+	var out []audit.Record
+	for _, r := range chain {
+		if r.Subject == subject {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// recordsIntact reports whether every record still hashes to what it carries.
+// This is the part of the audit trail a bundle can prove about itself.
+func recordsIntact(records []audit.Record) bool {
+	for _, r := range records {
+		if r.ComputeHash() != r.Hash {
+			return false
+		}
+	}
+	return true
 }
 
 // outOfScopeClasses are the threat classes an artifact scanner cannot assess.
@@ -196,14 +243,22 @@ func Build(in Input) (*Bundle, error) {
 
 	b.Coverage = buildCoverage(in)
 	b.Controls = buildControls(in)
+	// Verify the chain as a whole, then take this subject's excerpt from it.
+	// Doing it the other way round — filtering first and verifying the result —
+	// asks the verifier whether a handful of scattered records form a chain,
+	// which they never do.
+	whole := audit.VerifyFrom(in.AuditChain, in.AuditAnchor, in.AuditCheckpoint)
+	excerpt := excerptFor(in.AuditChain, audit.Subject(in.Subject.Model, in.Subject.Version))
 	b.Audit = AuditSection{
-		Records:    in.AuditRecords,
-		Checkpoint: in.AuditCheckpoint,
+		Records:       excerpt,
+		RecordsIntact: recordsIntact(excerpt),
+		Checkpoint:    in.AuditCheckpoint,
+		Anchor:        in.AuditAnchor,
+		ChainValid:    whole.Valid,
+		ChainLength:   whole.Length,
+		ChainProblems: whole.Problems,
+		Present:       len(excerpt) > 0,
 	}
-	verification := audit.Verify(in.AuditRecords, nil)
-	b.Audit.ChainValid = verification.Valid
-	b.Audit.ChainProblems = verification.Problems
-	b.Audit.Present = len(in.AuditRecords) > 0
 
 	digest, err := b.computeDigest()
 	if err != nil {
@@ -225,8 +280,13 @@ type Input struct {
 	Gaps            []string
 	Frameworks      []string
 	AttestationOpen int
-	AuditRecords    []audit.Record
+	// AuditChain is the whole chain, not this subject's slice of it. Build
+	// verifies it and excerpts from it; handing it a pre-filtered set would
+	// mean verifying something that is not a chain.
+	AuditChain      []audit.Record
 	AuditCheckpoint *audit.Checkpoint
+	// AuditAnchor covers records archived out of the live chain, if any.
+	AuditAnchor *audit.Anchor
 }
 
 func buildCoverage(in Input) Coverage {
@@ -311,17 +371,39 @@ func Verify(b *Bundle) (Verification, error) {
 				"but it carries %s", short(want), short(b.Digest)))
 	}
 
-	chain := audit.Verify(b.Audit.Records, b.Audit.Checkpoint)
-	v.ChainValid = chain.Valid
-	v.Problems = append(v.Problems, chain.Problems...)
+	// The records here are this subject's entries, not a chain, so they are
+	// checked one at a time: each carries a hash over its own contents.
+	// Re-walking them as though they were consecutive would report every
+	// bundle as tampered with, because a model's entries are scattered through
+	// a log it shares with every other model.
+	v.RecordsIntact = true
+	for _, r := range b.Audit.Records {
+		if got := r.ComputeHash(); got != r.Hash {
+			v.RecordsIntact = false
+			v.Problems = append(v.Problems, fmt.Sprintf(
+				"audit record %d has been modified since it was written: contents hash "+
+					"to %s but it carries %s", r.Seq, short(got), short(r.Hash)))
+		}
+	}
 
-	// An empty chain is internally consistent, so reporting only "intact"
-	// would let a bundle with no audit trail read like one with a clean trail.
-	// The bundle is still authentic; the reader just has less than they think.
+	// Completeness is a different claim from integrity, and the bundle cannot
+	// settle it: proving no entry was removed needs the records in between,
+	// which belong to other subjects and are not here. Carry the producer's
+	// finding and say plainly that it was not rechecked.
+	v.ChainValid = b.Audit.ChainValid
+	if !b.Audit.ChainValid {
+		v.Problems = append(v.Problems, fmt.Sprintf(
+			"the audit chain did not verify when this bundle was produced (%d records): %s",
+			b.Audit.ChainLength, strings.Join(b.Audit.ChainProblems, "; ")))
+	}
+
+	// An empty excerpt is vacuously intact, so reporting only "intact" would
+	// let a bundle with no audit trail read like one with a clean trail. The
+	// bundle is still authentic; the reader just has less than they think.
 	if len(b.Audit.Records) == 0 {
 		v.Problems = append(v.Problems,
-			"there is no audit trail for this subject: the chain is vacuously intact because "+
-				"it is empty, not because decisions were recorded and verified")
+			"there is no audit trail for this subject: nothing was recorded about it, "+
+				"so there is nothing here to have verified")
 	}
 
 	// A bundle whose verdict rests on scanners that never ran is not invalid,
@@ -334,7 +416,7 @@ func Verify(b *Bundle) (Verification, error) {
 			b.Coverage.ScannersRequested, b.Coverage.Incomplete))
 	}
 
-	v.Valid = v.DigestMatches && v.ChainValid
+	v.Valid = v.DigestMatches && v.RecordsIntact && v.ChainValid
 	return v, nil
 }
 
@@ -344,7 +426,12 @@ type Verification struct {
 	Valid bool `json:"valid"`
 	// DigestMatches reports whether the bundle is unmodified.
 	DigestMatches bool `json:"digestMatches"`
-	// ChainValid reports whether the audit records are intact.
+	// RecordsIntact reports whether this subject's audit entries still hash to
+	// the hashes they carry. Checked here, from the bundle, offline.
+	RecordsIntact bool `json:"recordsIntact"`
+	// ChainValid is the producer's finding about the full chain, carried
+	// forward rather than rechecked: the bundle does not hold the other
+	// subjects' records, so it cannot confirm nothing was removed.
 	ChainValid bool `json:"chainValid"`
 	// Problems describes anything a reader should weigh, including issues that
 	// do not invalidate the bundle.

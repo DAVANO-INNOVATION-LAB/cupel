@@ -66,11 +66,30 @@ type AuditCheckpointSpec struct {
 	Head string `json:"head"`
 	// Time the checkpoint was taken.
 	Time metav1.Time `json:"time"`
+
+	// ArchivedLength is how many records from the front of the chain have been
+	// written out of the cluster and deleted from it. Zero means the whole
+	// chain is still here.
+	//
+	// Length above stays the length of the whole chain, archived records
+	// included, so a checkpoint means the same thing before and after an
+	// archive runs.
+	// +optional
+	ArchivedLength int64 `json:"archivedLength,omitempty"`
+	// ArchivedHead is the hash of the last archived record: the point the
+	// records still in the cluster attach to.
+	// +optional
+	ArchivedHead string `json:"archivedHead,omitempty"`
+	// ArchiveLocation is where the archived records were written, so a reader
+	// who needs the whole chain knows there is more of it and where to look.
+	// +optional
+	ArchiveLocation string `json:"archiveLocation,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Length",type=integer,JSONPath=`.spec.length`
 // +kubebuilder:printcolumn:name="Head",type=string,JSONPath=`.spec.head`
+// +kubebuilder:printcolumn:name="Archived",type=integer,JSONPath=`.spec.archivedLength`
 // +kubebuilder:printcolumn:name="Time",type=date,JSONPath=`.spec.time`
 
 // AuditCheckpoint publishes the head of the audit chain.

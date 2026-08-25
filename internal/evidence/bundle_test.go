@@ -11,12 +11,17 @@ import (
 
 func sampleInput() Input {
 	base := time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC)
+	// A realistic chain: this subject's records are scattered through a log
+	// shared with every other model in the cluster. A fixture where the whole
+	// chain belongs to one subject is the one shape that hides the difference
+	// between a chain and an excerpt.
+	subjects := []string{"other/v1", "fraud/v3", "spam/v2", "fraud/v3", "other/v1", "fraud/v3"}
 	var chain []audit.Record
 	var prev *audit.Record
-	for i := 0; i < 3; i++ {
+	for i, subj := range subjects {
 		r := audit.Seal(audit.Record{
 			Time: base.Add(time.Duration(i) * time.Minute),
-			Type: audit.EventVerdictIssued, Subject: "fraud/v3", Actor: "system",
+			Type: audit.EventVerdictIssued, Subject: subj, Actor: "system",
 		}, prev)
 		chain = append(chain, r)
 		prev = &chain[len(chain)-1]
@@ -39,7 +44,7 @@ func sampleInput() Input {
 			{Name: "clamav", Completed: true},
 			{Name: "provenance", Completed: true},
 		},
-		AuditRecords:    chain,
+		AuditChain:      chain,
 		AuditCheckpoint: &cp,
 	}
 }
@@ -96,9 +101,10 @@ func TestChangingAnAcceptanceApproverIsDetected(t *testing.T) {
 	}
 }
 
-// Tampering with the embedded audit chain must be caught by the chain itself,
-// not only by the outer digest.
-func TestTamperedAuditChainIsCaught(t *testing.T) {
+// Tampering with an embedded audit record must be caught by the record's own
+// hash, not only by the outer digest. This is the part of the audit trail a
+// bundle can prove about itself, offline, with nothing else to hand.
+func TestTamperedAuditRecordIsCaught(t *testing.T) {
 	b, _ := Build(sampleInput())
 	b.Audit.Records[1].Actor = "someone-else"
 	// Re-digest so the outer hash matches; only the chain can catch this now.
@@ -112,9 +118,9 @@ func TestTamperedAuditChainIsCaught(t *testing.T) {
 	if v.DigestMatches != true {
 		t.Fatal("the digest was recomputed and should match")
 	}
-	if v.ChainValid {
-		t.Fatal("the audit chain must catch a rewritten record even when the outer " +
-			"digest was recomputed")
+	if v.RecordsIntact {
+		t.Fatal("a rewritten record must be caught by its own hash even when the " +
+			"outer digest was recomputed")
 	}
 	if v.Valid {
 		t.Fatal("a bundle with a broken chain is not valid")
@@ -225,7 +231,7 @@ func TestFindingsSurviveIntoTheBundle(t *testing.T) {
 // an evidence bundle is the person least able to check which they have.
 func TestEmptyAuditTrailIsNotReportedAsAssurance(t *testing.T) {
 	in := sampleInput()
-	in.AuditRecords = nil
+	in.AuditChain = nil
 	in.AuditCheckpoint = nil
 
 	b, err := Build(in)
