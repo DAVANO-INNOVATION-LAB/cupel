@@ -330,14 +330,13 @@ func (r *ArtifactScanReconciler) ensureScanJob(ctx context.Context, scan *securi
 		return err
 	}
 
-	jobName := scanJobName(scan.Name, name)
-	var existing batchv1.Job
-	err = r.Get(ctx, client.ObjectKey{Name: jobName, Namespace: scan.Namespace}, &existing)
-	if err == nil {
+	// Look under the old name too: a scan already running when the operator was
+	// upgraded has a Job named the way the previous version derived it, and
+	// missing it would start a second Job for work already in flight.
+	if _, found, err := r.findScanJob(ctx, scan.Namespace, scan.Name, name); err != nil {
+		return fmt.Errorf("check scan job for %s: %w", name, err)
+	} else if found {
 		return nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return fmt.Errorf("check scan job %s: %w", jobName, err)
 	}
 
 	job, err := buildScanJob(scan, def, findScannerSpec(pol, name), r.JobConfig)
@@ -348,7 +347,7 @@ func (r *ArtifactScanReconciler) ensureScanJob(ctx context.Context, scan *securi
 		return fmt.Errorf("set owner on scan job: %w", err)
 	}
 	if err := r.Create(ctx, job); err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("create scan job %s: %w", jobName, err)
+		return fmt.Errorf("create scan job %s: %w", job.Name, err)
 	}
 	return nil
 }
@@ -414,13 +413,16 @@ func (r *ArtifactScanReconciler) collectResults(ctx context.Context, scan *secur
 
 		// No report yet: derive interim status from the Job.
 		result := securityv1alpha1.ScannerResult{Scanner: name, Status: "Pending"}
+		found, ok, err := r.findScanJob(ctx, scan.Namespace, scan.Name, name)
 		var job batchv1.Job
-		err := r.Get(ctx, client.ObjectKey{Name: scanJobName(scan.Name, name), Namespace: scan.Namespace}, &job)
+		if ok {
+			job = *found
+		}
 		switch {
-		case apierrors.IsNotFound(err):
-			result.Status = "Pending"
 		case err != nil:
 			return nil, 0, fmt.Errorf("get scan job for %s: %w", name, err)
+		case !ok:
+			result.Status = "Pending"
 		case job.Status.Failed > 0:
 			result.Status = "Error"
 			result.Message = "scan job failed; see job logs"
