@@ -302,6 +302,29 @@ spec:
                       - Error
                       - Skipped
                       type: string
+                    unexamined:
+                      description: |-
+                        Unexamined counts the findings reporting that part of the artifact was
+                        not read at all, rather than reporting something about what was in it.
+                        Separate from Severities because a policy that wants to refuse an
+                        artifact nobody could parse has nothing else to match on.
+                      properties:
+                        critical:
+                          format: int32
+                          type: integer
+                        high:
+                          format: int32
+                          type: integer
+                        low:
+                          format: int32
+                          type: integer
+                        medium:
+                          format: int32
+                          type: integer
+                        unknown:
+                          format: int32
+                          type: integer
+                      type: object
                   required:
                   - scanner
                   - status

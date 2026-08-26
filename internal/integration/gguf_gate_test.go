@@ -121,54 +121,90 @@ func TestAMalformedGGUFIsSeenByTheScanner(t *testing.T) {
 	}
 }
 
-// Known limitation, recorded so it cannot be mistaken for working.
-//
-// The verdict is decided by policy-rule violations, not by findings, and no
-// rule covers "a scanner identified this format and could not read it". That is
-// not specific to GGUF: the equivalent findings for Keras, ONNX and plain IO
-// errors are all Medium and none of them has ever affected a verdict either.
-//
-// Closing it needs the gate to be able to see *which* findings were raised
-// rather than only how many and how severe, which is a change to what scanners
-// report — and a decision about whether an unreadable artifact should be
-// refused by default. Until then, an operator cannot express "block what could
-// not be read", and this test says so out loud rather than leaving a green
-// suite to imply otherwise.
-func TestAnUnreadableArtifactCannotYetBeBlockedByPolicy(t *testing.T) {
+// The gap this closed. A file the scanner identified and could not read used to
+// come back Approved under every rule the policy language had — the verdict is
+// built from rule violations, and nothing described coverage, so there was
+// nothing for a rule to match on.
+func TestAnUnreadableArtifactCanNowBeRefused(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "model.gguf"),
-		ggufBytes(3, math.MaxUint64, 4), 0o644); err != nil {
+	// Truncated after the magic bytes: the scanner recognises the format and
+	// cannot read the header. An implausible tensor count would not do — that
+	// is a finding about what is in the file, not about what was not read.
+	if err := os.WriteFile(filepath.Join(dir, "model.gguf"), []byte("GGUF"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	result := runInspectorStage(t, dir)
 	if result.Findings == 0 {
-		t.Fatal("precondition: the scanner should now report this file")
+		t.Fatal("precondition: the scanner should report this file")
+	}
+	if result.Unexamined.Critical+result.Unexamined.High+result.Unexamined.Medium+
+		result.Unexamined.Low+result.Unexamined.Unknown == 0 {
+		t.Fatal("precondition: the finding should be counted as coverage, not only as severity")
 	}
 
-	// Every rule the policy can express, set as strictly as it goes.
+	artifact := securityv1alpha1.ArtifactRef{URI: "pvc://claim/m"}
+	results := []securityv1alpha1.ScannerResult{result}
+
+	// Off, which is the default: unchanged from before.
+	loose := &securityv1alpha1.ArtifactScanPolicy{}
+	loose.Spec.Rules = securityv1alpha1.PolicyRules{BlockUnsafeModel: ptr(true)}
+	if v := policy.Evaluate(results, artifact, loose, nil, time.Now()); v.Verdict != "Approved" {
+		t.Errorf("with the rule off the verdict changed to %q; existing clusters would "+
+			"start refusing what they admit today", v.Verdict)
+	}
+
+	// On, and it refuses.
 	strict := &securityv1alpha1.ArtifactScanPolicy{}
 	strict.Spec.Rules = securityv1alpha1.PolicyRules{
-		MaxCriticalCVEs:  ptr(int32(0)),
-		MaxHighCVEs:      ptr(int32(0)),
-		BlockMalware:     ptr(true),
-		BlockSecrets:     ptr(true),
-		BlockUnsafeModel: ptr(true),
-		BlockModelDrift:  ptr(true),
+		BlockUnsafeModel: ptr(true), BlockUnexamined: ptr(true),
+	}
+	eval := policy.Evaluate(results, artifact, strict, nil, time.Now())
+	t.Logf("with blockUnexamined: verdict=%s violations=%d", eval.Verdict, len(eval.Violations))
+	if eval.Verdict == "Approved" {
+		t.Fatal("a file the scanner could not read was still approved")
 	}
 
-	eval := policy.Evaluate(
-		[]securityv1alpha1.ScannerResult{result},
-		securityv1alpha1.ArtifactRef{URI: "pvc://claim/m"},
-		strict, nil, time.Now(),
-	)
+	// ...and the workload is refused end to end.
+	scheme := admissionScheme(t)
+	report := &securityv1alpha1.ModelSecurityReport{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: controller.ModelReportName("m", "v1"), Namespace: "ml",
+		},
+		Spec: securityv1alpha1.ModelSecurityReportSpec{ModelName: "m", ModelVersion: "v1"},
+	}
+	report.Status.Verdict = eval.Verdict
+	report.Status.RiskScore = eval.RiskScore
+	report.Status.LastScanTime = &metav1.Time{Time: time.Now()}
 
-	t.Logf("under the strictest policy expressible: verdict=%s risk=%d violations=%d",
-		eval.Verdict, eval.RiskScore, len(eval.Violations))
+	gate := &cupelwebhook.ModelGate{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(report).Build(),
+	}
+	if err := gate.InjectDecoder(admission.NewDecoder(scheme)); err != nil {
+		t.Fatal(err)
+	}
+	if resp := gate.Handle(context.Background(), deploymentFor(t, "m", "v1")); resp.Allowed {
+		t.Fatal("the workload was admitted for a model nobody could read")
+	}
+}
 
+// An ordinary model must not trip the rule, or it is unusable.
+func TestAnOrdinaryModelIsUnaffectedByTheRule(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "model.gguf"), validGGUF(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result := runInspectorStage(t, dir)
+
+	strict := &securityv1alpha1.ArtifactScanPolicy{}
+	strict.Spec.Rules = securityv1alpha1.PolicyRules{
+		BlockUnsafeModel: ptr(true), BlockUnexamined: ptr(true),
+	}
+	eval := policy.Evaluate([]securityv1alpha1.ScannerResult{result},
+		securityv1alpha1.ArtifactRef{URI: "pvc://claim/m"}, strict, nil, time.Now())
 	if eval.Verdict != "Approved" {
-		t.Errorf("this now blocks (verdict %q) — the limitation is closed and this test "+
-			"should be replaced by one asserting the block", eval.Verdict)
+		t.Fatalf("an ordinary model was refused under blockUnexamined: %q — %d violations",
+			eval.Verdict, len(eval.Violations))
 	}
 }
 

@@ -102,6 +102,14 @@ spec:
                     description: BlockSecrets quarantines on any leaked-secret finding.
                       Defaults to true.
                     type: boolean
+                  blockUnexamined:
+                    description: |-
+                      BlockUnexamined quarantines an artifact part of which could not be read.
+
+                      Off by default: it refuses artifacts that are admitted today. Turning it
+                      on is the difference between "no findings" meaning "nothing wrong was
+                      found" and meaning "nothing was found, and we looked".
+                    type: boolean
                   blockUnsafeModel:
                     description: |-
                       BlockUnsafeModel quarantines on a critical model-inspection finding —

@@ -64,6 +64,13 @@ type PolicyRules struct {
 	// so it is surfaced by default and gated on request.
 	// +optional
 	BlockModelDrift *bool `json:"blockModelDrift,omitempty"`
+	// BlockUnexamined quarantines an artifact part of which could not be read.
+	//
+	// Off by default: it refuses artifacts that are admitted today. Turning it
+	// on is the difference between "no findings" meaning "nothing wrong was
+	// found" and meaning "nothing was found, and we looked".
+	// +optional
+	BlockUnexamined *bool `json:"blockUnexamined,omitempty"`
 	// RequireProvenance demands verified provenance attestations.
 	// +optional
 	RequireProvenance bool `json:"requireProvenance,omitempty"`

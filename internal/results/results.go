@@ -24,6 +24,12 @@ type Parsed struct {
 	// counted in Severities; this is a view of the same findings, not a
 	// second set.
 	Drift securityv1alpha1.SeverityCounts
+	// Unexamined counts the findings that report a file was not read, rather
+	// than reporting something about what was in it. Also a view of findings
+	// already in Severities, and separate for the same reason Drift is: a
+	// policy that wants to refuse an artifact nobody could read has nothing
+	// else to match on.
+	Unexamined securityv1alpha1.SeverityCounts
 	// Produced reports whether a document-producing scanner emitted one.
 	// Nil when the scanner does not produce a document.
 	Produced *bool
@@ -57,6 +63,7 @@ func Parse(format, path string) (*Parsed, error) {
 	out := &Parsed{
 		Severities: fromCounts(p.Severities),
 		Drift:      fromCounts(p.Drift),
+		Unexamined: fromCounts(tessera.TallyUnexamined(p.Findings)),
 		Produced:   p.Produced,
 		Absent:     p.Absent,
 	}

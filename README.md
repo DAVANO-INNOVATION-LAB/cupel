@@ -120,6 +120,17 @@ Promotion is explicit. A version approved for `dev` is not approved for `prod`
 until a `PromotionRequest` says so, and the gate refuses a workload that
 declares an environment the version was never promoted to.
 
+A policy can refuse an artifact the scanner could not fully read. Without
+`blockUnexamined`, a file that was recognised and failed to parse produces a
+report identical to one that was read and found clean — no findings either way:
+
+```yaml
+rules:
+  blockUnexamined: true
+```
+
+Off by default, because it refuses artifacts that are admitted today.
+
 An approval can be given a shelf life. A model version is a mutable pointer in
 most registries, so the bytes behind an approved name can change after the
 approval was given:

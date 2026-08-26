@@ -82,6 +82,7 @@ func toResults(in []securityv1alpha1.ScannerResult) []tessera.ScannerResult {
 			Findings:   r.Findings,
 			Severities: toCounts(r.Severities),
 			Drift:      toCounts(r.Drift),
+			Unexamined: toCounts(r.Unexamined),
 			Produced:   r.Produced,
 			Message:    r.Message,
 		})
@@ -112,6 +113,7 @@ func toRules(pol *securityv1alpha1.ArtifactScanPolicy) *tessera.GateRules {
 		BlockSecrets:      r.BlockSecrets,
 		BlockUnsafeModel:  r.BlockUnsafeModel,
 		BlockModelDrift:   r.BlockModelDrift,
+		BlockUnexamined:   r.BlockUnexamined,
 		RequireSignature:  r.RequireSignature,
 		RequireProvenance: r.RequireProvenance,
 		RequireSBOM:       r.RequireSBOM,

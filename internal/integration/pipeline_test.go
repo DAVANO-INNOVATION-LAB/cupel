@@ -54,6 +54,8 @@ func runInspectorStage(t *testing.T, modelDir string) securityv1alpha1.ScannerRe
 		Status:     status,
 		Findings:   parsed.Severities.Total(),
 		Severities: parsed.Severities,
+		Drift:      parsed.Drift,
+		Unexamined: parsed.Unexamined,
 	}
 }
 

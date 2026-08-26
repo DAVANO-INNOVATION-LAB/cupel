@@ -1167,6 +1167,11 @@ func (in *PolicyRules) DeepCopyInto(out *PolicyRules) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.BlockUnexamined != nil {
+		in, out := &in.BlockUnexamined, &out.BlockUnexamined
+		*out = new(bool)
+		**out = **in
+	}
 	if in.AllowedFormats != nil {
 		in, out := &in.AllowedFormats, &out.AllowedFormats
 		*out = make([]string, len(*in))
@@ -1300,6 +1305,7 @@ func (in *ScannerResult) DeepCopyInto(out *ScannerResult) {
 	*out = *in
 	out.Severities = in.Severities
 	out.Drift = in.Drift
+	out.Unexamined = in.Unexamined
 	if in.Produced != nil {
 		in, out := &in.Produced, &out.Produced
 		*out = new(bool)

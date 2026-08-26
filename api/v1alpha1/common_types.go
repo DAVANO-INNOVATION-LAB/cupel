@@ -74,6 +74,12 @@ type ScannerResult struct {
 	// Severities would make those two indistinguishable.
 	// +optional
 	Drift SeverityCounts `json:"drift,omitempty"`
+	// Unexamined counts the findings reporting that part of the artifact was
+	// not read at all, rather than reporting something about what was in it.
+	// Separate from Severities because a policy that wants to refuse an
+	// artifact nobody could parse has nothing else to match on.
+	// +optional
+	Unexamined SeverityCounts `json:"unexamined,omitempty"`
 
 	// Produced reports whether a scanner whose job is to emit a document
 	// actually emitted one. Nil means the question does not apply.

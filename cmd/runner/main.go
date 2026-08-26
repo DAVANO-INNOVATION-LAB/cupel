@@ -393,6 +393,7 @@ func runPublish(ctx context.Context, args []string) error {
 			Findings:       parsed.Severities.Total(),
 			Severities:     parsed.Severities,
 			Drift:          parsed.Drift,
+			Unexamined:     parsed.Unexamined,
 			Produced:       parsed.Produced,
 			Message:        message,
 			CompletionTime: &now,
