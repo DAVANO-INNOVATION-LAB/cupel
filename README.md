@@ -157,6 +157,12 @@ says so, in [SECURITY.md](SECURITY.md) and in the
 [MITRE ATLAS coverage map](internal/compliance/atlas.go), instead of letting
 silence imply coverage.
 
+The same goes for where it stops. Cupel decides whether a workload starts; it
+sees no prompt, no completion and no tool call, so it cannot prevent a running
+model from behaving badly. What it settles is the load-time path — the code that
+runs before the first token. [Where the product ends](SECURITY.md#where-the-product-ends)
+sets out the boundary.
+
 ## Documentation
 
 | | |

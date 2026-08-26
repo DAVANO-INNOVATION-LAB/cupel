@@ -23,6 +23,37 @@ What to expect:
 We will credit you in the advisory unless you ask us not to. This project has no
 bug bounty.
 
+## Where the product ends
+
+Cupel decides whether a workload is allowed to start. Once it has decided, it is
+not consulted again.
+
+That boundary is worth stating because the words nearby invite a stronger claim.
+A running model's prompts, its completions, and the tool calls an agent makes on
+its behalf are all invisible from where the admission gate stands. **Cupel cannot
+prevent a model that is already running from behaving badly**, and nothing in its
+configuration changes that. A product that could would have to sit in the
+inference path and read what passes through it, which this is not.
+
+Three things follow, and each is a real limit rather than a gap waiting to be
+closed:
+
+- **How a model is aligned is not an artifact property.** A model built to refuse
+  less is byte-for-byte an ordinary model: correct weights, ordinary config,
+  ordinary tokenizer. No inspection can see the difference, here or anywhere
+  else. Refusing one is a deployment decision, and the lever for it is
+  `requireSignature` against a declared `TrustedPublisher` — an allowlist of who
+  may ship models into the cluster, which is blunt on purpose.
+- **Agent skills are a different artifact.** Packages pulled from a skill
+  marketplace and executed by an agent framework are a real supply-chain problem
+  and a close cousin of this one, but they are not model artifacts and Cupel does
+  not read them.
+- **What is in reach is the load-time path.** A pickle that imports `os.system`,
+  a config that hands execution to model-supplied code, a chat template that
+  reaches the interpreter — these run before the first token, ahead of any
+  guardrail being consulted. That is the part of the problem an artifact scanner
+  can actually settle, and it is what Cupel settles.
+
 ## What counts as a vulnerability here
 
 Cupel is a security tool, which makes the boundary worth stating plainly.
