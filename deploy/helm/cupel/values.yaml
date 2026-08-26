@@ -205,3 +205,22 @@ audit:
     threshold: 50000
     # Records left in the cluster after a run.
     retain: 10000
+
+gate:
+  # How long an approval stands before the model has to be scanned again.
+  #
+  # 0, the default, means an approval never expires — which is how Cupel has
+  # always behaved, so switching to this chart changes nothing about what your
+  # cluster admits. Set it when you want one.
+  #
+  # A model version is a mutable pointer in most registries: a branch, a tag.
+  # The bytes behind an approved name can be replaced after the approval was
+  # given, and the digest check only catches that when the workload pins a
+  # digest, which a registry reference usually does not.
+  #
+  #   180  a scan is good for half a year
+  #   365  a scan is good for a year
+  #
+  # A stale approval is refused with a message saying to rescan. A stale
+  # denial stays a denial: expiry can only take an approval away.
+  maxReportAgeDays: 0

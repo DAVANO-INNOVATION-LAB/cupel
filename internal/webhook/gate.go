@@ -42,6 +42,21 @@ type ModelGate struct {
 	// DefaultPolicy is consulted for enforcement mode when a workload does
 	// not name a policy.
 	DefaultPolicy string
+	// MaxReportAge is how long an approval stands before the model has to be
+	// scanned again. Zero, the default, means an approval never expires.
+	//
+	// A model version is a mutable pointer in most registries — a branch, a
+	// tag — so the bytes behind an approved name can be replaced after the
+	// approval was given. The digest check catches that when the workload
+	// pins one, and a registry reference usually pins nothing.
+	//
+	// Off by default because any maximum refuses workloads that are admitted
+	// today, and that is the operator's decision to make, not this gate's.
+	MaxReportAge time.Duration
+
+	// Now is injectable for tests.
+	Now func() time.Time
+
 	// RequireReport rejects workloads that reference a model with no report
 	// at all. When false, unknown models are admitted with a warning.
 	RequireReport bool
@@ -243,6 +258,26 @@ type decision struct {
 	reason string
 }
 
+func (g *ModelGate) now() time.Time {
+	if g.Now != nil {
+		return g.Now()
+	}
+	return time.Now()
+}
+
+// roundAge renders a duration the way somebody reading a denial would say it,
+// rather than as hours to the nanosecond.
+func roundAge(d time.Duration) string {
+	switch {
+	case d >= 48*time.Hour:
+		return fmt.Sprintf("%d days", int(d.Hours()/24))
+	case d >= 2*time.Hour:
+		return fmt.Sprintf("%d hours", int(d.Hours()))
+	default:
+		return d.Round(time.Minute).String()
+	}
+}
+
 func (g *ModelGate) evaluate(report *securityv1alpha1.ModelSecurityReport, ref ModelRef, promotion string) decision {
 	switch report.Status.Verdict {
 	case securityv1alpha1.VerdictApproved:
@@ -258,6 +293,26 @@ func (g *ModelGate) evaluate(report *securityv1alpha1.ModelSecurityReport, ref M
 	default:
 		return decision{true, fmt.Sprintf(
 			"model %q version %q has no completed scan verdict", ref.Model, ref.Version)}
+	}
+
+	// An approval older than the operator's limit is not an approval any more.
+	//
+	// This can only take an approval away, never grant one: every other verdict
+	// has already returned above. Staleness must not rescue a denial.
+	if g.MaxReportAge > 0 {
+		scanned := report.Status.LastScanTime
+		if scanned == nil {
+			return decision{true, fmt.Sprintf(
+				"model %q version %q carries an approval with no scan time, so it cannot be "+
+					"shown to be within the %s freshness limit; rescan it",
+				ref.Model, ref.Version, g.MaxReportAge)}
+		}
+		if age := g.now().Sub(scanned.Time); age > g.MaxReportAge {
+			return decision{true, fmt.Sprintf(
+				"model %q version %q was last scanned %s ago, beyond the %s freshness limit; "+
+					"rescan it before deploying",
+				ref.Model, ref.Version, roundAge(age), g.MaxReportAge)}
+		}
 	}
 
 	// The digest pinned in the workload must match what was actually scanned,

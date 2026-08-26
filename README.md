@@ -120,6 +120,18 @@ Promotion is explicit. A version approved for `dev` is not approved for `prod`
 until a `PromotionRequest` says so, and the gate refuses a workload that
 declares an environment the version was never promoted to.
 
+An approval can be given a shelf life. A model version is a mutable pointer in
+most registries, so the bytes behind an approved name can change after the
+approval was given:
+
+```bash
+--set gate.maxReportAgeDays=180   # or 365
+```
+
+Off by default, because any limit refuses workloads that are admitted today. A
+stale approval is refused with a message saying to rescan; a stale denial stays
+a denial.
+
 Cupel is meant to be left running. Finished scans age out on a retention
 window, the decision log can be archived out of the cluster once it grows past a
 threshold, and the chain's length is published as a metric — so what it stores

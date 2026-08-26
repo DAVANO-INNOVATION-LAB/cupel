@@ -45,6 +45,7 @@ func main() {
 		auditArchiveThreshold  int
 		auditArchiveRetain     int
 		scanRetentionDays      int
+		maxReportAgeDays       int
 		maintenanceMinutes     int
 		requireTransparencyLog bool
 		metricsAddr            string
@@ -84,6 +85,9 @@ func main() {
 		"seconds to retain completed scan jobs")
 	flag.StringVar(&defaultPolicy, "default-policy", os.Getenv("CUPEL_DEFAULT_POLICY"),
 		"policy consulted by the admission gate when a workload names none")
+	flag.IntVar(&maxReportAgeDays, "max-report-age-days", 0,
+		"days an approval stands before the model must be scanned again; "+
+			"0 means an approval never expires. 180 and 365 are the usual choices")
 	flag.BoolVar(&requireReport, "require-report", false,
 		"deny workloads that reference a model with no Cupel security report")
 	flag.IntVar(&scanDeadlineMinutes, "scan-deadline-minutes", 120,
@@ -220,6 +224,7 @@ func main() {
 		// is nowhere to put them, and the gate still gates.
 		if auditNamespace != "" {
 			gate.Recorder = &audit.Recorder{Client: mgr.GetClient(), Namespace: auditNamespace}
+			gate.MaxReportAge = time.Duration(maxReportAgeDays) * 24 * time.Hour
 		}
 		if err := gate.SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to set up admission webhook")

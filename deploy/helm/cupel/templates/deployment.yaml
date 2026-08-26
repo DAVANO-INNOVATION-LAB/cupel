@@ -81,6 +81,7 @@ spec:
             - --workspace-size={{ .Values.operator.workspaceSize }}
             - --zap-log-level={{ .Values.operator.logLevel }}
             - --scan-retention-days={{ .Values.retention.scanDays }}
+            - --max-report-age-days={{ .Values.gate.maxReportAgeDays }}
             - --maintenance-interval-minutes={{ .Values.retention.intervalMinutes }}
             {{- if .Values.audit.archive.enabled }}
             - --audit-archive-dir={{ .Values.audit.archive.mountPath }}
