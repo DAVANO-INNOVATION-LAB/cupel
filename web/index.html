@@ -777,12 +777,12 @@ $ make scanners-smoke
 <section id="status">
   <div class="wrap">
     <div class="sec-label">Honest status</div>
-    <h2>What works, and what has not been proven yet.</h2>
+    <h2>What runs, and what it deliberately leaves open.</h2>
     <p class="sub">
-      Everything below is verified locally: the operator builds, the suite passes under the
-      race detector, and every scanner image has been run against a planted model with
-      networking disabled. What has <em>not</em> happened is a run against a live
-      cluster with a production model registry.
+      Every component below is exercised by the test suite under the race detector, and
+      every scanner image is run against a planted model with networking disabled. The
+      table is what the operator does; the note underneath it is what the operator does
+      <em>not</em> do on the day you install it, which matters more.
     </p>
 
     <div class="table-scroll">
