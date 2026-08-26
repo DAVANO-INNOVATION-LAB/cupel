@@ -204,27 +204,29 @@ func (g *ModelGate) Handle(ctx context.Context, req admission.Request) admission
 // A genuine API error is returned as an error so the caller can fail per the
 // webhook's failurePolicy rather than mistaking an outage for "not scanned".
 func (g *ModelGate) findReport(ctx context.Context, workloadNamespace string, ref ModelRef) (*securityv1alpha1.ModelSecurityReport, error) {
-	name := modelReportName(ref.Model, ref.Version)
+	// Current name first, then the name reports were written under before they
+	// carried a fingerprint. Whichever matches, the report still has to say it
+	// is about this model.
+	names := controller.ModelReportNames(ref.Model, ref.Version)
 	for _, ns := range g.lookupNamespaces(workloadNamespace) {
-		report := &securityv1alpha1.ModelSecurityReport{}
-		err := g.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: ns}, report)
-		if err == nil {
-			// The object name is derived from the model identity, and deriving
-			// it loses information: identifiers arrive from a registry and are
-			// flattened into something Kubernetes will accept. Two different
-			// models can flatten to the same name, and then whichever was
-			// scanned last decides the other one's fate.
-			//
-			// The report says which model it is about. Check it, rather than
-			// trusting that a name which matched was a name that meant the same
-			// thing.
-			if !reportDescribes(report, ref) {
-				continue
+		for _, name := range names {
+			report := &securityv1alpha1.ModelSecurityReport{}
+			err := g.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: ns}, report)
+			if err == nil {
+				// The object name is derived from the model identity, and
+				// deriving it loses information: identifiers arrive from a
+				// registry and are flattened into something Kubernetes will
+				// accept. The fingerprint keeps current names apart; this check
+				// is what makes a legacy name safe to read, and covers any
+				// derivation nobody has thought of yet.
+				if !reportDescribes(report, ref) {
+					continue
+				}
+				return report, nil
 			}
-			return report, nil
-		}
-		if client.IgnoreNotFound(err) != nil {
-			return nil, err
+			if client.IgnoreNotFound(err) != nil {
+				return nil, err
+			}
 		}
 	}
 	return nil, nil

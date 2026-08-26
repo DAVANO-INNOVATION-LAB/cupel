@@ -26,6 +26,23 @@ func modelReportName(model, version string) string {
 	return naming.ModelReport(model, version)
 }
 
+// ModelReportNames are the names a model's report may be stored under, current
+// first.
+//
+// Names gained a fingerprint so that two models could stop deriving the same
+// one. Reports written before that are still the only record of a scan that
+// really happened, so a reader has to look under the old name too — and a
+// lookup that finds one is checked against the report's own contents, which is
+// what makes tolerating the ambiguous name safe.
+func ModelReportNames(model, version string) []string {
+	current := naming.ModelReport(model, version)
+	legacy := naming.LegacyModelReport(model, version)
+	if legacy == current {
+		return []string{current}
+	}
+	return []string{current, legacy}
+}
+
 func scanNameFor(model, version, artifactID string) string {
 	return naming.Scan(model, version, artifactID)
 }

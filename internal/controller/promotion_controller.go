@@ -14,7 +14,6 @@ import (
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
-	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
 )
 
 // PromotionReconciler drives PromotionRequests.
@@ -142,18 +141,29 @@ func (r *PromotionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // securityReport finds the verdict this promotion would rest on. A missing
 // report is not an error: it is the answer, and the caller reports it as one.
 func (r *PromotionReconciler) securityReport(ctx context.Context, pr *securityv1alpha1.PromotionRequest) (*securityv1alpha1.ModelSecurityReport, error) {
-	report := &securityv1alpha1.ModelSecurityReport{}
-	key := client.ObjectKey{
-		Name:      naming.ModelReport(pr.Spec.ModelName, pr.Spec.ModelVersion),
-		Namespace: pr.Namespace,
-	}
-	if err := r.Get(ctx, key, report); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, nil
+	// Current name first, then the name a report would have been written under
+	// before names carried a fingerprint. A report found either way still has
+	// to be about the model the request names.
+	for _, name := range ModelReportNames(pr.Spec.ModelName, pr.Spec.ModelVersion) {
+		report := &securityv1alpha1.ModelSecurityReport{}
+		key := client.ObjectKey{Name: name, Namespace: pr.Namespace}
+		err := r.Get(ctx, key, report)
+		switch {
+		case apierrors.IsNotFound(err):
+			continue
+		case err != nil:
+			return nil, err
 		}
-		return nil, err
+		if report.Spec.ModelName != "" && report.Spec.ModelName != pr.Spec.ModelName {
+			continue
+		}
+		if report.Spec.ModelVersion != "" && pr.Spec.ModelVersion != "" &&
+			report.Spec.ModelVersion != pr.Spec.ModelVersion {
+			continue
+		}
+		return report, nil
 	}
-	return report, nil
+	return nil, nil
 }
 
 // applyEnvironment records where an approved model version now runs.

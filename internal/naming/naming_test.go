@@ -90,10 +90,20 @@ func TestNamesThatSanitizeIdenticallyStillDiffer(t *testing.T) {
 }
 
 func TestNamesAreDeterministic(t *testing.T) {
+	// The operator and the admission webhook derive this independently, so the
+	// same inputs have to give the same name every time and in every process.
+	first := ModelReport("detector", "v1")
 	for range 5 {
-		if got := ModelReport("detector", "v1"); got != "msr-detector-v1" {
-			t.Fatalf("ModelReport() = %q, want a stable readable name", got)
+		if got := ModelReport("detector", "v1"); got != first {
+			t.Fatalf("ModelReport() returned %q then %q for the same input", first, got)
 		}
+	}
+	// Still readable: the fingerprint is a suffix, not a replacement.
+	if !strings.HasPrefix(first, "msr-detector-v1-") {
+		t.Errorf("name %q lost the readable part", first)
+	}
+	if len(first) > MaxNameLength {
+		t.Errorf("name %q is %d characters, over the limit", first, len(first))
 	}
 }
 

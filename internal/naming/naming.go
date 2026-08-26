@@ -42,20 +42,44 @@ func SanitizeLabel(value string) string {
 	return truncate(Sanitize(value))
 }
 
-// Stable builds a DNS-safe name from a prefix and parts. When the readable
-// form would exceed the length limit it is truncated and a hash of the full
-// input is appended, so distinct inputs never collide.
+// Stable builds a DNS-safe name from a prefix and parts.
+//
+// Every name carries a fingerprint of the exact inputs, because sanitizing
+// them throws information away: "acme/fraud", "acme-fraud", "acme.fraud" and
+// "Acme_Fraud" all flatten to the same characters. Without the fingerprint two
+// different models derive one name, and whichever was written last decides what
+// the other one's workloads are allowed to do.
+//
+// The fingerprint used to be appended only when the readable form overran the
+// length limit, which is almost never — so the protection existed for long
+// names and nothing else.
 func Stable(prefix string, parts ...string) string {
+	suffix := fingerprint(parts)
+
+	readable := Sanitize(prefix + "-" + strings.Join(parts, "-"))
+	budget := MaxNameLength - hashLength - 1
+	if len(readable) > budget {
+		readable = readable[:budget]
+	}
+	readable = strings.TrimRight(readable, "-")
+	if readable == "" {
+		return suffix
+	}
+	return readable + "-" + suffix
+}
+
+// LegacyStable is how names were derived before they carried a fingerprint.
+//
+// Kept so a reader can still find an object written by an older operator. It is
+// a read path only: nothing writes these names any more, and a lookup that hits
+// one is still checked against the object's own contents, so a legacy name that
+// collides is caught the same way a current one would be.
+func LegacyStable(prefix string, parts ...string) string {
 	readable := Sanitize(prefix + "-" + strings.Join(parts, "-"))
 	if len(readable) <= MaxNameLength {
 		return readable
 	}
-
-	// The hash covers the raw parts, not the sanitized form, so two names
-	// that sanitize identically still get distinct hashes.
-	sum := sha256.Sum256([]byte(strings.Join(parts, "\x00")))
-	suffix := hex.EncodeToString(sum[:])[:hashLength]
-
+	suffix := fingerprint(parts)
 	budget := MaxNameLength - hashLength - 1
 	if budget < 1 {
 		return suffix
@@ -66,9 +90,21 @@ func Stable(prefix string, parts ...string) string {
 	return strings.TrimRight(readable, "-") + "-" + suffix
 }
 
+// fingerprint covers the raw parts rather than the sanitized form, so two
+// inputs that sanitize identically still separate.
+func fingerprint(parts []string) string {
+	sum := sha256.Sum256([]byte(strings.Join(parts, "\x00")))
+	return hex.EncodeToString(sum[:])[:hashLength]
+}
+
 // ModelReport is the ModelSecurityReport name for a model version.
 func ModelReport(model, version string) string {
 	return Stable("msr", model, version)
+}
+
+// LegacyModelReport is the pre-fingerprint ModelSecurityReport name.
+func LegacyModelReport(model, version string) string {
+	return LegacyStable("msr", model, version)
 }
 
 // Scan is the ArtifactScan name for one artifact of a model version.
