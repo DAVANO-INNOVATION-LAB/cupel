@@ -84,6 +84,13 @@ cupel inspect s3://bucket/models/fraud-detect
   verdict:  Approved (risk score 0/100)
 ```
 
+An archived decision log verifies from the files alone, with no cluster and no
+credentials — which is the state an auditor is usually in:
+
+```bash
+cupel audit verify ./audit-archive --checkpoint checkpoint.json
+```
+
 Note what that says. gpt2's pickle weights *can* execute code, and Cupel reports
 it — at Low, and still approves the model, because that is true of every pickle
 ever shipped and is not a defect in this one. A scanner that raises an alarm on
@@ -112,6 +119,13 @@ webhook reads it when a workload asks to run that model.
 Promotion is explicit. A version approved for `dev` is not approved for `prod`
 until a `PromotionRequest` says so, and the gate refuses a workload that
 declares an environment the version was never promoted to.
+
+Cupel is meant to be left running. Finished scans age out on a retention
+window, the decision log can be archived out of the cluster once it grows past a
+threshold, and the chain's length is published as a metric — so what it stores
+tracks recent activity rather than uptime. Archived records stay part of the same
+verifiable chain: the checkpoint records where they went, and `cupel audit
+verify` checks them against it.
 
 ![The Cupel console](docs/images/console-scan.png)
 
