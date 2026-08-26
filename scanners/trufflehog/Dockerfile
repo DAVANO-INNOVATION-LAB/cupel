@@ -6,7 +6,7 @@ ARG TRUFFLEHOG_VERSION
 ARG TARGETARCH=amd64
 
 RUN microdnf install -y tar gzip ca-certificates && microdnf clean all
-RUN curl -fsSL -o /tmp/th.tar.gz \
+RUN curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 -o /tmp/th.tar.gz \
       "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_${TARGETARCH}.tar.gz" && \
     tar -xzf /tmp/th.tar.gz -C /usr/local/bin trufflehog && \
     chmod 0755 /usr/local/bin/trufflehog

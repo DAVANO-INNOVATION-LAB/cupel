@@ -9,7 +9,7 @@ ARG TARGETARCH=amd64
 ARG BAKE_DB=true
 
 RUN microdnf install -y tar gzip ca-certificates && microdnf clean all
-RUN curl -fsSL -o /tmp/grype.tar.gz \
+RUN curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 -o /tmp/grype.tar.gz \
       "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_${TARGETARCH}.tar.gz" && \
     tar -xzf /tmp/grype.tar.gz -C /usr/local/bin grype && \
     chmod 0755 /usr/local/bin/grype

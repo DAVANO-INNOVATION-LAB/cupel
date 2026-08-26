@@ -17,7 +17,7 @@ RUN case "${TARGETARCH}" in \
       arm64) ASSET="Linux-ARM64" ;; \
       *) echo "unsupported architecture ${TARGETARCH}" >&2; exit 1 ;; \
     esac && \
-    curl -fsSL -o /tmp/trivy.tar.gz \
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 -o /tmp/trivy.tar.gz \
       "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_${ASSET}.tar.gz" && \
     tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy && \
     chmod 0755 /usr/local/bin/trivy

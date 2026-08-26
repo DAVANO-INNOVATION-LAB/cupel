@@ -6,7 +6,7 @@ ARG SYFT_VERSION
 ARG TARGETARCH=amd64
 
 RUN microdnf install -y tar gzip ca-certificates && microdnf clean all
-RUN curl -fsSL -o /tmp/syft.tar.gz \
+RUN curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 -o /tmp/syft.tar.gz \
       "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_${TARGETARCH}.tar.gz" && \
     tar -xzf /tmp/syft.tar.gz -C /usr/local/bin syft && \
     chmod 0755 /usr/local/bin/syft
