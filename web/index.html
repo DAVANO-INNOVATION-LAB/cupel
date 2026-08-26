@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cupel — Davano Innovation Lab</title>
-<meta name="description" content="OpenShift-native AI model security from Davano Innovation Lab. Reads model artifacts by format — safetensors, ONNX, GGUF, pickle — scans every version registered in the OpenShift AI Model Registry, and blocks unapproved models at deployment.">
+<meta name="description" content="AI model security for Kubernetes from Davano Innovation Lab. Reads model artifacts by format — safetensors, ONNX, GGUF, pickle — scans every version a model registry publishes, and blocks unapproved models at deployment.">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0a0d14">
 
@@ -31,7 +31,7 @@
      brand colour must never appear in the severity ramp, or every warning
      chip competes with it. Amber failed that test; cobalt sits outside it.
      Being adjacent to PatternFly blue is deliberate — the console plugin
-     should read as native to OpenShift rather than bolted on. */
+     should read as native to the cluster rather than bolted on. */
   /* Deep enough that white ink on a filled chip or button clears AA — a
      brighter cobalt looks better in isolation but only reaches 3.7:1 under
      white text, which is the most common way blue brands fail. Text sitting
@@ -339,7 +339,7 @@ footer a { color: var(--text-dim); }
     <p class="lede">
       Cupel reads model artifacts the way the loader will: it parses the serialization
       format, finds every path by which weights execute code, and stops the model at the
-      cluster door. Built into the OpenShift AI Model Registry, so a model is inspected the
+      cluster door. It connects to the model registry you already run, so a model is inspected the
       moment it is registered.
     </p>
     <div class="cta">
@@ -513,7 +513,7 @@ cupel.security/last-scan      <span class="s">2026-07-30T21:14:07Z</span></pre>
 
     <div class="pipe">
       <div class="pipe-inner">
-        <div class="stage"><span class="num">01</span><h4>Register</h4><p>A model version lands in the OpenShift AI Model Registry.</p></div>
+        <div class="stage"><span class="num">01</span><h4>Register</h4><p>A model version lands in a connected model registry.</p></div>
         <div class="stage"><span class="num">02</span><h4>Resolve</h4><p>The connector reads the artifact URI and stages the weights.</p></div>
         <div class="stage"><span class="num">03</span><h4>Scan</h4><p>One isolated Job per scanner: format, malware, CVEs, SBOM, secrets.</p></div>
         <div class="stage key"><span class="num">04</span><h4>Judge</h4><p>Findings consolidate into a verdict and a risk score.</p></div>
@@ -781,8 +781,8 @@ $ make scanners-smoke
     <p class="sub">
       Everything below is verified locally: the operator builds, the suite passes under the
       race detector, and every scanner image has been run against a planted model with
-      networking disabled. What has <em>not</em> happened is a run against a live OpenShift
-      cluster with a real Model Registry.
+      networking disabled. What has <em>not</em> happened is a run against a live
+      cluster with a production model registry.
     </p>
 
     <div class="table-scroll">
@@ -822,7 +822,7 @@ $ make scanners-smoke
 
 <footer>
   <div class="wrap foot">
-    <span>Cupel · a <strong>Davano Innovation Lab</strong> project · built for OpenShift AI</span>
+    <span>Cupel · a <strong>Davano Innovation Lab</strong> project · runs on any conformant cluster</span>
     <span><a href="https://github.com/DAVANO-INNOVATION-LAB/cupel">github.com/DAVANO-INNOVATION-LAB/cupel</a></span>
   </div>
 </footer>
