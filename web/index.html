@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Assay — Davano Innovation Lab</title>
+<title>Cupel — Davano Innovation Lab</title>
 <meta name="description" content="OpenShift-native AI model security from Davano Innovation Lab. Reads model artifacts by format — safetensors, ONNX, GGUF, pickle — scans every version registered in the OpenShift AI Model Registry, and blocks unapproved models at deployment.">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0a0d14">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="Assay — Davano Innovation Lab">
-<meta property="og:description" content="A model is executable code. Assay reads the serialization format, finds what executes on load, and gates the deployment.">
+<meta property="og:title" content="Cupel — Davano Innovation Lab">
+<meta property="og:description" content="A model is executable code. Cupel reads the serialization format, finds what executes on load, and gates the deployment.">
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230a0d14'/%3E%3Cpath d='M13 3 4.8 13.4h5.7L9.9 21l8.7-11.2h-6z' fill='%233b82f6'/%3E%3C/svg%3E">
 
@@ -319,7 +319,7 @@ footer a { color: var(--text-dim); }
   <div class="wrap bar">
     <span class="brand">
       <svg class="bolt" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4.5 13.2h5.9L9.8 22l9-11.6h-6.2z"/></svg>
-      Assay<span class="long"> Model Scanner</span>
+      Cupel<span class="long"> Model Scanner</span>
       <span class="lab">Davano Innovation Lab</span>
     </span>
     <nav>
@@ -327,7 +327,7 @@ footer a { color: var(--text-dim); }
       <a href="#formats">Formats</a>
       <a href="#lifecycle" class="hide-sm">Lifecycle</a>
       <a href="#governance">AI RMF</a>
-      <a href="https://github.com/JUMP1ST/assay-model-scanner">GitHub</a>
+      <a href="https://github.com/DAVANO-INNOVATION-LAB/cupel">GitHub</a>
     </nav>
   </div>
 </header>
@@ -337,13 +337,13 @@ footer a { color: var(--text-dim); }
     <span class="eyebrow"><span class="dot"></span> Davano Innovation Lab</span>
     <h1>A model is <em>executable code</em>. Scan it like one.</h1>
     <p class="lede">
-      Assay reads model artifacts the way the loader will: it parses the serialization
+      Cupel reads model artifacts the way the loader will: it parses the serialization
       format, finds every path by which weights execute code, and stops the model at the
       cluster door. Built into the OpenShift AI Model Registry, so a model is inspected the
       moment it is registered.
     </p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/JUMP1ST/assay-model-scanner">
+      <a class="btn primary" href="https://github.com/DAVANO-INNOVATION-LAB/cupel">
         View the source
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17 17 7M9 7h8v8"/></svg>
       </a>
@@ -377,32 +377,32 @@ footer a { color: var(--text-dim); }
         <div class="node flagged">
           <span class="fname"><span class="guide">├─</span> config.json</span>
           <span class="sev critical">Critical</span>
-          <span class="note">ASSAY-HF-001 — declares <code>trust_remote_code</code>, so loading the model executes Python shipped alongside the weights.</span>
+          <span class="note">TESS-HF-001 — declares <code>trust_remote_code</code>, so loading the model executes Python shipped alongside the weights.</span>
         </div>
         <div class="node flagged">
           <span class="fname"><span class="guide">├─</span> config.json <span class="depth">› auto_map</span></span>
           <span class="sev high">High</span>
-          <span class="note">ASSAY-HF-002 — points <code>transformers</code> at model-supplied classes, which run on load.</span>
+          <span class="note">TESS-HF-002 — points <code>transformers</code> at model-supplied classes, which run on load.</span>
         </div>
         <div class="node flagged">
           <span class="fname"><span class="guide">├─</span> pytorch_model.bin</span>
           <span class="sev critical">Critical</span>
-          <span class="note">ASSAY-PICKLE-001 — pickle <code>GLOBAL</code> opcode imports <code>os.system</code>. Unpickling is the execution; no exploit required.</span>
+          <span class="note">TESS-PICKLE-001 — pickle <code>GLOBAL</code> opcode imports <code>os.system</code>. Unpickling is the execution; no exploit required.</span>
         </div>
         <div class="node flagged">
           <span class="fname"><span class="guide">├─</span> modeling_custom.py</span>
           <span class="sev critical">Critical</span>
-          <span class="note">ASSAY-PY-001 — shells out at import time, reached through <code>auto_map</code> above.</span>
+          <span class="note">TESS-PY-001 — shells out at import time, reached through <code>auto_map</code> above.</span>
         </div>
         <div class="node flagged">
           <span class="fname"><span class="guide">├─</span> libcustom.so</span>
           <span class="sev high">High</span>
-          <span class="note">ASSAY-NATIVE-001 — native shared library; loads arbitrary machine code at model load.</span>
+          <span class="note">TESS-NATIVE-001 — native shared library; loads arbitrary machine code at model load.</span>
         </div>
         <div class="node flagged">
           <span class="fname"><span class="guide">├─</span> extra.zip <span class="depth">› ../../../etc/cron.d/pwn</span></span>
           <span class="sev critical">Critical</span>
-          <span class="note">ASSAY-ARCHIVE-003 — archive entry escapes the extraction directory (zip slip).</span>
+          <span class="note">TESS-ARCHIVE-003 — archive entry escapes the extraction directory (zip slip).</span>
         </div>
         <div class="node clean">
           <span class="fname"><span class="guide">├─</span> model.safetensors</span>
@@ -433,7 +433,7 @@ footer a { color: var(--text-dim); }
     <div class="sec-label">Format coverage</div>
     <h2>Risk is a property of the format, before any file is examined.</h2>
     <p class="sub">
-      Some serialization formats cannot execute code at all. Others do it by design. Assay
+      Some serialization formats cannot execute code at all. Others do it by design. Cupel
       classifies the artifact first, so a policy can refuse an entire format class rather
       than playing whack-a-mole with individual payloads.
     </p>
@@ -459,7 +459,7 @@ footer a { color: var(--text-dim); }
     <div class="callout">
       <h3>Why classification is not enough on its own</h3>
       <p>
-        Attackers rename files, so extension alone proves nothing. Assay sniffs headers —
+        Attackers rename files, so extension alone proves nothing. Cupel sniffs headers —
         an ELF binary behind <code>vocab.txt.dat</code> is still an ELF binary. Conversely,
         a raw tensor dump contains every pickle opcode byte purely by chance, so detection
         keys on the protocol magic and the declared format rather than on byte
@@ -493,11 +493,11 @@ footer a { color: var(--text-dim); }
 
     <pre><span class="c"># The verdict is written back to the registry, so it shows up
 # next to the model rather than in a separate console</span>
-assay.security/verdict        <span class="s">Quarantined</span>
-assay.security/risk-score     <span class="s">100</span>
-assay.security/malware        <span class="s">Clean</span>
-assay.security/cve-critical   <span class="s">0</span>
-assay.security/last-scan      <span class="s">2026-07-30T21:14:07Z</span></pre>
+cupel.security/verdict        <span class="s">Quarantined</span>
+cupel.security/risk-score     <span class="s">100</span>
+cupel.security/malware        <span class="s">Clean</span>
+cupel.security/cve-critical   <span class="s">0</span>
+cupel.security/last-scan      <span class="s">2026-07-30T21:14:07Z</span></pre>
   </div>
 </section>
 
@@ -506,7 +506,7 @@ assay.security/last-scan      <span class="s">2026-07-30T21:14:07Z</span></pre>
     <div class="sec-label">How it works</div>
     <h2>Registration triggers the scan. Deployment enforces the verdict.</h2>
     <p class="sub">
-      Assay integrates with the Model Registry API rather than watching ImageStreams, so a
+      Cupel integrates with the Model Registry API rather than watching ImageStreams, so a
       model is caught the moment it is declared — wherever the weights live: S3, ODF, a
       PVC, an OCI registry, or a ModelCar image.
     </p>
@@ -622,7 +622,7 @@ assay.security/last-scan      <span class="s">2026-07-30T21:14:07Z</span></pre>
     <pre><span class="c"># Model-level findings outweigh a CVE of equal severity: unsafe
 # deserialization is working code execution, not a bug something
 # else still has to reach.</span>
-$ kubectl get modelsecurityreports -n assay-system
+$ kubectl get modelsecurityreports -n cupel-system
 NAME                       MODEL                  VERDICT        RISK   MALWARE
 msr-fraud-detector-v2-1-0  fraud-detector         <span class="s">Quarantined</span>    100    Clean
 msr-llama-guard-v1-4-0     llama-guard            <span class="s">Approved</span>         0    Clean</pre>
@@ -634,7 +634,7 @@ msr-llama-guard-v1-4-0     llama-guard            <span class="s">Approved</span
     <div class="sec-label">NIST AI RMF 1.0</div>
     <h2>Framework reporting that will survive an audit.</h2>
     <p class="sub">
-      Assay assesses every scanned model version against the AI RMF Core and writes the
+      Cupel assesses every scanned model version against the AI RMF Core and writes the
       result to the cluster as a <code>ComplianceReport</code>. What it will not do is
       claim more than it can see. The AI RMF is a voluntary organizational risk-management
       framework, not a technical control baseline — most of it describes things no scanner
@@ -654,7 +654,7 @@ msr-llama-guard-v1-4-0     llama-guard            <span class="s">Approved</span
       <div class="table-scroll">
         <table>
           <thead>
-            <tr><th>Function</th><th>Controls</th><th>Assay evidences</th><th>Needs a human</th></tr>
+            <tr><th>Function</th><th>Controls</th><th>Cupel evidences</th><th>Needs a human</th></tr>
           </thead>
           <tbody>
             <tr><td>GOVERN</td><td>19</td><td>1 full · 9 partial</td><td>9</td></tr>
@@ -674,7 +674,7 @@ msr-llama-guard-v1-4-0     llama-guard            <span class="s">Approved</span
       <div class="card">
         <span class="tag">MEASURE 2.7</span>
         <h3>Security and resilience</h3>
-        <p>The subcategory Assay exists to satisfy: malware, known vulnerabilities, embedded
+        <p>The subcategory Cupel exists to satisfy: malware, known vulnerabilities, embedded
            secrets, and unsafe serialization evaluated on every version, retained as
            cluster resources.</p>
       </div>
@@ -710,7 +710,7 @@ msr-llama-guard-v1-4-0     llama-guard            <span class="s">Approved</span
     </div>
 
     <pre><span class="c"># A clean scan is not framework conformance, and the report says so</span>
-$ kubectl get compliancereports -n assay-system
+$ kubectl get compliancereports -n cupel-system
 NAME                      MODEL           FRAMEWORK        CONFORMANT   OPEN
 cr-llama-guard-v1-4-0     llama-guard     nist-ai-rmf-1.0  <span class="s">false</span>        41
 
@@ -806,14 +806,14 @@ $ make scanners-smoke
     <div class="callout">
       <h3>Two deliberately permissive defaults</h3>
       <p>
-        A gate that blocks everything on day one breaks running clusters, so Assay ships open
+        A gate that blocks everything on day one breaks running clusters, so Cupel ships open
         and expects to be tightened. <code>--require-report=false</code> admits models that
         have never been scanned, and the webhook's <code>failurePolicy: Ignore</code> keeps
-        a Assay outage from blocking all model deployments.
+        a Cupel outage from blocking all model deployments.
       </p>
       <p>
         The second is worth stating plainly: <code>Ignore</code> means anyone who can
-        disrupt Assay can also bypass the gate. Both should move once every model in the
+        disrupt Cupel can also bypass the gate. Both should move once every model in the
         registry has a report.
       </p>
     </div>
@@ -822,8 +822,8 @@ $ make scanners-smoke
 
 <footer>
   <div class="wrap foot">
-    <span>Assay · a <strong>Davano Innovation Lab</strong> project · built for OpenShift AI</span>
-    <span><a href="https://github.com/JUMP1ST/assay-model-scanner">github.com/JUMP1ST/assay-model-scanner</a></span>
+    <span>Cupel · a <strong>Davano Innovation Lab</strong> project · built for OpenShift AI</span>
+    <span><a href="https://github.com/DAVANO-INNOVATION-LAB/cupel">github.com/DAVANO-INNOVATION-LAB/cupel</a></span>
   </div>
 </footer>
 

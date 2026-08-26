@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Assay — Console</title>
+<title>Cupel — Console</title>
 <meta name="color-scheme" content="dark light">
 <!-- Inline so the console stays one self-contained file: an external icon
      would be a second request the serving path may not answer, and the tab
@@ -225,7 +225,7 @@ td:first-child{color:var(--text);font-weight:500}
 
 <header><div class="wrap bar">
   <svg class="bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4.5 13.2h5.9L9.8 22l9-11.6h-6.2z"/></svg>
-  <span class="brand">Assay<span class="lab">Model Security</span></span>
+  <span class="brand">Cupel<span class="lab">Model Security</span></span>
   <span class="hspace"></span>
   <button class="hbtn" id="open-queue" type="button">
     Review queue <span class="badge" id="queue-badge" hidden>0</span>
@@ -275,7 +275,7 @@ td:first-child{color:var(--text);font-weight:500}
       <label class="fld">
         <span>Artifact URI</span>
         <input id="f-uri" placeholder="s3://models/fraud-detector/v3" required spellcheck="false">
-        <small id="f-urihint">Where the bytes live. Assay stages them, then scans what it staged.</small>
+        <small id="f-urihint">Where the bytes live. Cupel stages them, then scans what it staged.</small>
       </label>
 
       <div class="frow">
@@ -317,7 +317,7 @@ td:first-child{color:var(--text);font-weight:500}
 
   <section>
     <span class="sec-label">Model sources</span>
-    <h1>Where models come from, and whether Assay can still see them.</h1>
+    <h1>Where models come from, and whether Cupel can still see them.</h1>
     <p class="note">Each row is a <span class="mono">ModelRegistryConnector</span>. The operator polls
       it, opens a scan for every version it has not seen, and writes the verdict back onto the
       version so the people who registered the model see it where they work.</p>
@@ -450,7 +450,7 @@ td:first-child{color:var(--text);font-weight:500}
   <section>
     <span class="sec-label">NIST AI RMF 1.0</span>
     <h1 id="compliance-for">Framework assessment</h1>
-    <p class="note">Assay evidences a minority of the 72 subcategories. The rest are organizational and can only be closed by a named attestation — they are shown open rather than assumed.</p>
+    <p class="note">Cupel evidences a minority of the 72 subcategories. The rest are organizational and can only be closed by a named attestation — they are shown open rather than assumed.</p>
     <div id="compliance"></div>
   </section>
 
@@ -458,7 +458,7 @@ td:first-child{color:var(--text);font-weight:500}
 </div>
 
 <script>
-// Served by assay-api, which authenticates every request.
+// Served by cupel-api, which authenticates every request.
 //
 // The page holds no credential: the session is an HttpOnly, Secure cookie the
 // browser attaches automatically and JavaScript here cannot read. Nothing is
@@ -476,7 +476,7 @@ const API = '/api';
 let me = null;
 const can = c => !!(me && me.capabilities && me.capabilities[c]);
 // The install namespace, reported by the server so command hints are accurate.
-let NS = 'assay-system';
+let NS = 'cupel-system';
 
 // Selection is model *and* version: the same model can have several versions
 // with completely different postures, so filtering on the name alone would mix
@@ -704,7 +704,7 @@ function renderStats(reports) {
 
 // ---------------------------------------------------------------- run a scan
 
-const FIXTURE = 'http://model-fixture.assay-system.svc.cluster.local';
+const FIXTURE = 'http://model-fixture.cupel-system.svc.cluster.local';
 const ALL_SCANNERS = ['clamav', 'trivy', 'syft', 'trufflehog', 'model-inspector'];
 
 const PRESETS = [
@@ -1342,7 +1342,7 @@ async function acceptRisk(model, version, btn) {
     } else {
       sayQueue(`Risk accepted for <b>${esc(model)} ${esc(version)}</b>, but <b>the record is unsigned</b>:
         the signing webhook did not stamp an identity, so this acceptance is not attributable to anyone.
-        Install the <span class="mono">assay-exception-signer</span> webhook before relying on this as
+        Install the <span class="mono">exceptions.security.davano.io</span> webhook before relying on this as
         an audit trail.`, true);
     }
     refresh();
@@ -1357,16 +1357,16 @@ async function acceptRisk(model, version, btn) {
 
 // ------------------------------------------------------------------- the CLI
 function cliDrawer() {
-  const img = 'docker.io/davanolab/assay-operator:0.1.0';
+  const img = 'ghcr.io/davano-innovation-lab/cupel-operator:0.2.4';
   const blocks = [
     ['Run it from the operator image — nothing to install',
-     `docker run --rm --network none -v "$PWD/model:/m:ro" \\\n  --entrypoint /assay ${img} inspect /m`],
+     `docker run --rm --network none -v "$PWD/model:/m:ro" \\\n  --entrypoint /cupel ${img} inspect /m`],
     ['Copy the binary out of the running operator',
-     `kubectl cp -n ${NS} "$(kubectl get pod -n ${NS} -l app.kubernetes.io/component=controller \\\n  -o jsonpath='{.items[0].metadata.name}')":/assay ./assay\nchmod +x ./assay`],
+     `kubectl cp -n ${NS} "$(kubectl get pod -n ${NS} -l app.kubernetes.io/component=controller \\\n  -o jsonpath='{.items[0].metadata.name}')":/cupel ./cupel\nchmod +x ./cupel`],
     ['Scan a public model straight from the hub',
-     `./assay inspect hf://openai-community/gpt2`],
+     `./cupel inspect hf://openai-community/gpt2`],
     ['Use it as a CI gate',
-     `./assay inspect --json ./model > report.json\n# exit 0 approved · 2 review required · 3 quarantined · 1 scan failed`],
+     `./cupel inspect --json ./model > report.json\n# exit 0 approved · 2 review required · 3 quarantined · 1 scan failed`],
   ];
   document.getElementById('drawer-body').innerHTML = `
     <p class="note" style="margin-top:0">The same inspector and policy engine run as a single static
@@ -1448,7 +1448,7 @@ function showSignIn() {
     panel.innerHTML = `
       <span class="sec-label">Sign in</span>
       <h1>This console requires an account.</h1>
-      <p class="note">Assay shows exploitable detail — the file a malicious pickle lives in,
+      <p class="note">Cupel shows exploitable detail — the file a malicious pickle lives in,
         the credential that leaked, the exact rule a model failed. What you see depends on
         the role your identity provider groups map to, so there is no anonymous view.</p>
       <div class="factions">
@@ -1587,7 +1587,7 @@ async function refresh() {
       return;
     }
     document.getElementById('err').innerHTML =
-      `<div class="err"><strong>Cannot reach the Assay API.</strong> ${esc(e.message)}</div>`;
+      `<div class="err"><strong>Cannot reach the Cupel API.</strong> ${esc(e.message)}</div>`;
   }
 }
 
@@ -1603,7 +1603,7 @@ let sourceState = [];
 
 const SOURCE_TYPES = {
   MLflow: {
-    hint: 'A tracking server. Assay reads the model registry and rewrites the artifact URI so the scan pod can fetch it.',
+    hint: 'A tracking server. Cupel reads the model registry and rewrites the artifact URI so the scan pod can fetch it.',
     url: 'http://mlflow.mlflow.svc.cluster.local:5000',
     short: 'MLflow',
   },
@@ -1646,7 +1646,7 @@ function renderSources(items) {
   const count = document.getElementById('src-count');
 
   if (!items.length) {
-    tb.innerHTML = `<tr><td colspan="9" class="empty">No sources connected. Assay is scanning only
+    tb.innerHTML = `<tr><td colspan="9" class="empty">No sources connected. Cupel is scanning only
       what is submitted to it by hand or blocked at admission — nothing is being checked at
       registration time.</td></tr>`;
     count.textContent = '';
@@ -1820,9 +1820,9 @@ document.getElementById('scrim').onclick = closeDrawer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 document.addEventListener('keydown', trapFocus);
 document.getElementById('report-issue').href =
-  'mailto:DAVANO@davano.net?subject=' + encodeURIComponent('Assay — issue report') +
+  'mailto:DAVANO@davano.net?subject=' + encodeURIComponent('Cupel — issue report') +
   '&body=' + encodeURIComponent(
-    'What happened:\n\nWhat you expected:\n\nAssay version / image tag:\n\nCluster (OpenShift, kind, Rancher, other):\n');
+    'What happened:\n\nWhat you expected:\n\nCupel version / image tag:\n\nCluster (OpenShift, kind, Rancher, other):\n');
 // The preset wants to preselect a policy, so wait for the options to exist.
 async function boot() {
   try {
@@ -1833,7 +1833,7 @@ async function boot() {
       return;
     }
     document.getElementById('err').innerHTML =
-      `<div class="err"><strong>Cannot reach the Assay API.</strong> ${esc(e.message)}</div>`;
+      `<div class="err"><strong>Cannot reach the Cupel API.</strong> ${esc(e.message)}</div>`;
     return;
   }
   await loadPolicies().catch(() => {});
