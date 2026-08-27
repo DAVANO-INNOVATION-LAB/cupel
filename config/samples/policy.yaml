@@ -24,6 +24,10 @@ spec:
     # os.system, an archive escaping its directory, trust_remote_code. These
     # execute on load, so they are treated as seriously as malware.
     blockUnsafeModel: true
+    # Refuse an artifact part of which could not be read. Without this, a file
+    # the scanner recognised and failed to parse produces a report identical to
+    # one it read and found clean: no findings either way.
+    blockUnexamined: true
     requireSBOM: true
     requireSignature: false
     blockedFormats:
