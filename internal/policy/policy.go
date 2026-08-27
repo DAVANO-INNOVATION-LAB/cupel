@@ -107,19 +107,20 @@ func toRules(pol *securityv1alpha1.ArtifactScanPolicy) *tessera.GateRules {
 	}
 	r := pol.Spec.Rules
 	return &tessera.GateRules{
-		MaxCriticalCVEs:   r.MaxCriticalCVEs,
-		MaxHighCVEs:       r.MaxHighCVEs,
-		BlockMalware:      r.BlockMalware,
-		BlockSecrets:      r.BlockSecrets,
-		BlockUnsafeModel:  r.BlockUnsafeModel,
-		BlockModelDrift:   r.BlockModelDrift,
-		BlockUnexamined:   r.BlockUnexamined,
-		RequireSignature:  r.RequireSignature,
-		RequireProvenance: r.RequireProvenance,
-		RequireSBOM:       r.RequireSBOM,
-		RequireAIBOM:      r.RequireAIBOM,
-		AllowedFormats:    r.AllowedFormats,
-		BlockedFormats:    r.BlockedFormats,
+		MaxCriticalCVEs:      r.MaxCriticalCVEs,
+		MaxHighCVEs:          r.MaxHighCVEs,
+		BlockMalware:         r.BlockMalware,
+		BlockSecrets:         r.BlockSecrets,
+		BlockUnsafeModel:     r.BlockUnsafeModel,
+		BlockModelDrift:      r.BlockModelDrift,
+		BlockUnexamined:      r.BlockUnexamined,
+		MaxHighModelFindings: r.MaxHighModelFindings,
+		RequireSignature:     r.RequireSignature,
+		RequireProvenance:    r.RequireProvenance,
+		RequireSBOM:          r.RequireSBOM,
+		RequireAIBOM:         r.RequireAIBOM,
+		AllowedFormats:       r.AllowedFormats,
+		BlockedFormats:       r.BlockedFormats,
 	}
 }
 

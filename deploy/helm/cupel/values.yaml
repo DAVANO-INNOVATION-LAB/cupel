@@ -224,3 +224,33 @@ gate:
   # A stale approval is refused with a message saying to rescan. A stale
   # denial stays a denial: expiry can only take an approval away.
   maxReportAgeDays: 0
+
+console:
+  # The web console and the API behind it.
+  #
+  # Off by default, and not because it is unfinished: the API has no anonymous
+  # mode on purpose, so it needs an OIDC issuer to start. An air-gapped cluster
+  # without an identity provider has nowhere to point it, and a deployment that
+  # cannot start is worse than one that was never created.
+  enabled: false
+  replicas: 1
+  # Where role bindings come from: a ConfigMap mapping identity-provider groups
+  # to roles and tenants.
+  bindingsConfigMap: cupel-console-bindings
+  bindingsPath: /config/bindings.yaml
+  oidc:
+    # Required when enabled. There is no fallback.
+    issuerURL: ""
+    clientID: ""
+    redirectURL: ""
+    # Secret holding the client secret, if the provider needs one.
+    clientSecretRef: {}
+    #   name: cupel-oidc
+    #   key: client-secret
+  tls:
+    secretName: ""
+    certFile: ""
+    keyFile: ""
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 256Mi}

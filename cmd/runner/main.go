@@ -414,6 +414,16 @@ func runPublish(ctx context.Context, args []string) error {
 		}
 	}
 
+	// Keep the bill of materials. The aibom stage rendered it into this same
+	// results volume, which is an emptyDir — without this it goes when the pod
+	// does, and the report is left asserting it was produced with nothing to
+	// show for it.
+	if err := controller.PublishBOM(ctx, k8s, *namespace, *scanName,
+		filepath.Dir(*resultsPath)); err != nil {
+		// Not fatal: losing the document must not lose the verdict.
+		fmt.Fprintf(os.Stderr, "could not store the bill of materials: %v\n", err)
+	}
+
 	if err := k8s.Create(ctx, report); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("create scan report: %w", err)

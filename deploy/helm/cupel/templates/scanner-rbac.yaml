@@ -32,6 +32,12 @@ rules:
   - apiGroups: ["security.davano.io"]
     resources: ["artifactscanreports"]
     verbs: ["get", "create", "update"]
+  # The publish step keeps the bill of materials the scan rendered, which would
+  # otherwise go with the pod's emptyDir. Deliberately no list: the step writes
+  # the one ConfigMap it just produced and reads nothing else.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

@@ -71,6 +71,15 @@ type PolicyRules struct {
 	// found" and meaning "nothing was found, and we looked".
 	// +optional
 	BlockUnexamined *bool `json:"blockUnexamined,omitempty"`
+	// MaxHighModelFindings bounds how many High model-inspection findings an
+	// artifact may carry. Nil means no limit, which is how Cupel has always
+	// behaved.
+	//
+	// BlockUnsafeModel covers Critical only, so a chat template that reaches
+	// the interpreter or a native library beside the weights — both High, both
+	// executing at load — were reported and could not be refused.
+	// +optional
+	MaxHighModelFindings *int32 `json:"maxHighModelFindings,omitempty"`
 	// RequireProvenance demands verified provenance attestations.
 	// +optional
 	RequireProvenance bool `json:"requireProvenance,omitempty"`

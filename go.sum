@@ -34,6 +34,8 @@ github.com/DAVANO-INNOVATION-LAB/tessera v1.1.0 h1:1Tcz/q1Gj3wIl9IUDOl0Nw66XGnab
 github.com/DAVANO-INNOVATION-LAB/tessera v1.1.0/go.mod h1:yBfp9396Jbf8Z+BoeaPDQm/xI8lBzwwMfyztrJ47OjE=
 github.com/DAVANO-INNOVATION-LAB/tessera v1.2.0 h1:9s5eMmww30o+g3KgXSHSN+6iXrJN/8Uv6QcZthERPJw=
 github.com/DAVANO-INNOVATION-LAB/tessera v1.2.0/go.mod h1:yBfp9396Jbf8Z+BoeaPDQm/xI8lBzwwMfyztrJ47OjE=
+github.com/DAVANO-INNOVATION-LAB/tessera v1.3.0 h1:uUdsh9P54uGzHR0doXjuSyq/mTH/9XeMjv7B9yk6LV0=
+github.com/DAVANO-INNOVATION-LAB/tessera v1.3.0/go.mod h1:yBfp9396Jbf8Z+BoeaPDQm/xI8lBzwwMfyztrJ47OjE=
 github.com/DAVANO-INNOVATION-LAB/tessera/fetch v1.0.1 h1:QNjYCzRY+akTwtP1jtN03VZdkiXIrHYE/PdjnNoOUh4=
 github.com/DAVANO-INNOVATION-LAB/tessera/fetch v1.0.1/go.mod h1:GYoXQC+8JY4T9XxZgbrQTQIQkmuGduHuhNBx7C0prKw=
 github.com/DAVANO-INNOVATION-LAB/tessera/sigstore v1.0.0 h1:WQdtg1oYtztiQPALtQCboVUbdbXn23wmsu2KUlrMao8=

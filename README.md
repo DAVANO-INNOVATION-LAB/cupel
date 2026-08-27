@@ -120,6 +120,14 @@ Promotion is explicit. A version approved for `dev` is not approved for `prod`
 until a `PromotionRequest` says so, and the gate refuses a workload that
 declares an environment the version was never promoted to.
 
+The bill of materials a scan renders is kept in a ConfigMap beside the scan, so
+it can be read after the Job that made it is gone:
+
+```bash
+kubectl -n cupel-system get cm -l security.davano.io/artifact=bom
+kubectl -n cupel-system get cm bom-<scan> -o jsonpath='{.data.model\.cdx\.json}'
+```
+
 A policy can refuse an artifact the scanner could not fully read. Without
 `blockUnexamined`, a file that was recognised and failed to parse produces a
 report identical to one that was read and found clean — no findings either way:

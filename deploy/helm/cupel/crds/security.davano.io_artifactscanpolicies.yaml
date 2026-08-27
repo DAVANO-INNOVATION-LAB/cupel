@@ -131,6 +131,17 @@ spec:
                   maxHighCVEs:
                     format: int32
                     type: integer
+                  maxHighModelFindings:
+                    description: |-
+                      MaxHighModelFindings bounds how many High model-inspection findings an
+                      artifact may carry. Nil means no limit, which is how Cupel has always
+                      behaved.
+
+                      BlockUnsafeModel covers Critical only, so a chat template that reaches
+                      the interpreter or a native library beside the weights — both High, both
+                      executing at load — were reported and could not be refused.
+                    format: int32
+                    type: integer
                   requireAIBOM:
                     description: |-
                       RequireAIBOM demands a generated AI bill of materials — a description

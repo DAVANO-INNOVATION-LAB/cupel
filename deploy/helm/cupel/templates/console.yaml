@@ -1,0 +1,92 @@
+{{- if .Values.console.enabled }}
+# The console and its API.
+#
+# Off by default because it cannot start without an identity provider: the API
+# has no anonymous mode, by design, and an enclave with no OIDC issuer has
+# nowhere to point it. Enabling it without one produces a pod that will not
+# start, so the chart makes that a choice rather than a surprise.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cupel.fullname" . }}-console
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cupel.labels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+spec:
+  replicas: {{ .Values.console.replicas }}
+  selector:
+    matchLabels:
+      {{- include "cupel.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: console
+  template:
+    metadata:
+      labels:
+        {{- include "cupel.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: console
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: console
+          image: {{ include "cupel.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/cupel-api"]
+          args:
+            - --listen=:8443
+            - --namespace={{ .Release.Namespace }}
+            - --oidc-issuer-url={{ required "console.enabled requires console.oidc.issuerURL: the API has no anonymous mode" .Values.console.oidc.issuerURL }}
+            - --oidc-client-id={{ required "console.enabled requires console.oidc.clientID" .Values.console.oidc.clientID }}
+            - --oidc-redirect-url={{ .Values.console.oidc.redirectURL }}
+            - --bindings={{ .Values.console.bindingsPath }}
+            {{- with .Values.console.tls.certFile }}
+            - --tls-cert-file={{ . }}
+            {{- end }}
+            {{- with .Values.console.tls.keyFile }}
+            - --tls-private-key-file={{ . }}
+            {{- end }}
+          env:
+            {{- with .Values.console.oidc.clientSecretRef }}
+            - name: CUPEL_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: {{ .name }}, key: {{ .key }}}
+            {{- end }}
+          ports:
+            - {name: https, containerPort: 8443}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            {{- toYaml .Values.console.resources | nindent 12 }}
+          volumeMounts:
+            - {name: bindings, mountPath: {{ dir .Values.console.bindingsPath }}, readOnly: true}
+            {{- if .Values.console.tls.secretName }}
+            - {name: console-tls, mountPath: /tls, readOnly: true}
+            {{- end }}
+      volumes:
+        - name: bindings
+          configMap:
+            name: {{ .Values.console.bindingsConfigMap }}
+        {{- if .Values.console.tls.secretName }}
+        - name: console-tls
+          secret: {secretName: {{ .Values.console.tls.secretName }}}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cupel.fullname" . }}-console
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cupel.labels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+spec:
+  selector:
+    {{- include "cupel.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+  ports:
+    - {name: https, port: 443, targetPort: https}
+{{- end }}

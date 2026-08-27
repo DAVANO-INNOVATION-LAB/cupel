@@ -15,6 +15,9 @@ spec:
     - name: trufflehog
     - name: model-inspector
     - name: provenance
+    # The bill of materials. Listing scanners explicitly overrides the catalog
+    # defaults, so leaving this out silently turns the AIBOM off.
+    - name: tessera
   rules:
     maxCriticalCVEs: 0
     maxHighCVEs: 5
@@ -28,6 +31,10 @@ spec:
     # the scanner recognised and failed to parse produces a report identical to
     # one it read and found clean: no findings either way.
     blockUnexamined: true
+    # Bound high-severity model findings too. blockUnsafeModel covers Critical
+    # only, so without this a chat template reaching the interpreter or a native
+    # library beside the weights is reported and admitted.
+    maxHighModelFindings: 0
     requireSBOM: true
     requireSignature: false
     blockedFormats:

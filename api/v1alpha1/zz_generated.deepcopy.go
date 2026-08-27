@@ -1172,6 +1172,11 @@ func (in *PolicyRules) DeepCopyInto(out *PolicyRules) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.MaxHighModelFindings != nil {
+		in, out := &in.MaxHighModelFindings, &out.MaxHighModelFindings
+		*out = new(int32)
+		**out = **in
+	}
 	if in.AllowedFormats != nil {
 		in, out := &in.AllowedFormats, &out.AllowedFormats
 		*out = make([]string, len(*in))
