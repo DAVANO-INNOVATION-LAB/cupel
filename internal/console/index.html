@@ -59,6 +59,12 @@ tr.detail>td{background:var(--bg-inset);padding:0}
 .dv{color:var(--text-dim);word-break:break-word}
 .dv.mono{font-family:var(--mono);font-size:.8rem;color:var(--text)}
 h1{font-size:1.5rem;letter-spacing:-.02em;margin:0}
+.bom-row{display:inline-flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-left:.9rem}
+.bom-label{font:600 .62rem/1 ui-monospace,monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.bom-doc{font:.72rem/1 ui-monospace,monospace;padding:.16rem .45rem;border:1px solid var(--line);
+  border-radius:3px;text-decoration:none;color:var(--accent);background:var(--panel)}
+.bom-doc:hover{border-color:var(--accent)}
+.bom-none{font:.72rem/1 ui-monospace,monospace;color:var(--muted)}
 .sec-label{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:3px 9px;border-radius:4px;margin-bottom:12px}
 section{padding:34px 0}
 section+section{border-top:1px solid var(--border)}
@@ -437,6 +443,7 @@ td:first-child{color:var(--text);font-weight:500}
 
   <section>
     <span class="sec-label">Findings</span>
+    <span id="bom-links" class="bom-row"></span>
     <h1 id="findings-for">Scan findings</h1>
     <div class="fsum" id="findings-summary"></div>
     <div class="filters" id="findfilters"></div>
@@ -920,9 +927,39 @@ function renderActive(scans) {
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, unknown: 4 };
 
+// The bill of materials the scan rendered, offered where the model is.
+//
+// This is what somebody would otherwise open Tessera Studio to read — except
+// Studio browses a directory on a filesystem and a model here is a cluster
+// object, so there is no path to hand it. The document is already in the
+// cluster; the shorter route is to offer it rather than send anybody elsewhere.
+//
+// Absence is stated rather than left blank: a scan that ran without the aibom
+// stage produces no document, and that looks identical to one that was lost.
+async function renderBOM(sel) {
+  const host = document.getElementById('bom-links');
+  if (!host) return;
+  if (!sel) { host.innerHTML = ''; return; }
+  try {
+    const res = await api(`/bom?model=${encodeURIComponent(sel.model)}` +
+      `&version=${encodeURIComponent(sel.version)}`);
+    const docs = res.documents || [];
+    if (!docs.length) { host.innerHTML = ''; return; }
+    host.innerHTML = '<span class="bom-label">Bill of materials</span>' + docs.map(d =>
+      `<a class="bom-doc" href="${API}/bom?model=${encodeURIComponent(sel.model)}` +
+      `&version=${encodeURIComponent(sel.version)}&document=${encodeURIComponent(d)}">${esc(d)}</a>`
+    ).join('');
+  } catch (e) {
+    if (e instanceof NotSignedIn) throw e;
+    host.innerHTML = '<span class="bom-label">Bill of materials</span>' +
+      '<span class="bom-none">none recorded — the policy may not enable the tessera scanner</span>';
+  }
+}
+
 function renderFindings(scanReports, scans, sel) {
   document.getElementById('findings-for').textContent =
     sel ? `Findings — ${sel.model} ${sel.version}` : 'Scan findings';
+  renderBOM(sel);
 
   // Reports carry scanRef; the ArtifactScan carries the model and version.
   // Filtering through that mapping is what keeps one model's issues from
@@ -1357,7 +1394,7 @@ async function acceptRisk(model, version, btn) {
 
 // ------------------------------------------------------------------- the CLI
 function cliDrawer() {
-  const img = 'ghcr.io/davano-innovation-lab/cupel-operator:0.7.1';
+  const img = 'ghcr.io/davano-innovation-lab/cupel-operator:0.8.0';
   const blocks = [
     ['Run it from the operator image — nothing to install',
      `docker run --rm --network none -v "$PWD/model:/m:ro" \\\n  --entrypoint /cupel ${img} inspect /m`],

@@ -91,6 +91,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /api/whoami", s.authenticated(s.handleWhoami))
 	mux.Handle("GET /api/models", s.authenticated(s.handleModels))
 	mux.Handle("GET /api/findings", s.authenticated(s.handleFindings))
+	mux.Handle("GET /api/bom", s.authenticated(s.handleBOM))
 	mux.Handle("POST /api/scans", s.authenticated(s.handleCreateScan))
 	mux.Handle("POST /api/exceptions", s.authenticated(s.handleCreateException))
 	mux.Handle("GET /api/scans", s.authenticated(s.handleScans))
