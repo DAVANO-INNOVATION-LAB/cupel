@@ -3,7 +3,7 @@ module github.com/DAVANO-INNOVATION-LAB/cupel
 go 1.25.8
 
 require (
-	github.com/DAVANO-INNOVATION-LAB/tessera v1.3.0
+	github.com/DAVANO-INNOVATION-LAB/tessera v1.4.0
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/prometheus/client_golang v1.24.1
