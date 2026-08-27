@@ -194,6 +194,13 @@ func runAIBOM(ctx context.Context, args []string) error {
 	}
 
 	if docs != nil && *bomDir != "" {
+		// The scan pod mounts this as an emptyDir that already exists, so the
+		// failure only shows up running the stage by hand — where it reads as
+		// the bill of materials having failed rather than the directory being
+		// absent.
+		if err := os.MkdirAll(*bomDir, 0o755); err != nil {
+			return fmt.Errorf("create %s: %w", *bomDir, err)
+		}
 		for name, body := range map[string][]byte{
 			"model.cdx.json":  docs.CycloneDX,
 			"model.spdx.json": docs.SPDX,
