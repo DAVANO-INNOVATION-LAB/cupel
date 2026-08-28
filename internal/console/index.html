@@ -244,6 +244,7 @@ td:first-child{color:var(--text);font-weight:500}
   <button class="hbtn" id="open-queue" type="button">
     Review queue <span class="badge" id="queue-badge" hidden>0</span>
   </button>
+  <button class="hbtn" id="open-audit" type="button" hidden>Audit log</button>
   <button class="hbtn" id="open-cli" type="button">Get the CLI</button>
   <span class="who" id="whoami"></span>
   <a class="hbtn" id="report-issue" href="#" target="_blank" rel="noopener">Report an issue</a>
@@ -1458,6 +1459,95 @@ async function acceptRisk(model, version, btn) {
 }
 
 // ------------------------------------------------------------------- the CLI
+// The audit drawer answers the one question nothing else here answers: who
+// decided this, and has the record been altered since. Everything else in the
+// console describes the present. This describes the decisions — and it outlives
+// them, because scans are pruned and their findings go with them while the
+// chain remains.
+async function auditDrawer() {
+  const body = document.getElementById('drawer-body');
+  body.innerHTML = '<p class="note" style="margin-top:0">Reading the chain\u2026</p>';
+  let res;
+  try {
+    res = await api('/audit?limit=100');
+  } catch (e) {
+    if (e instanceof NotSignedIn) throw e;
+    body.innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    return;
+  }
+
+  const c = res.chain || {};
+  const head = (c.head || '').slice(0, 16);
+  // Valid and invalid are not two shades of the same thing. An intact chain is
+  // a claim worth stating plainly; a broken one is the single most serious
+  // thing this console can report, so it is never softened into a note.
+  const status = c.valid
+    ? `<div class="msg"><strong>Chain intact.</strong> ${c.length} record(s), head
+         <span class="mono">${esc(head)}\u2026</span> Each record commits to the one before
+         it, so a decision edited or removed after the fact breaks the link and shows up
+         here.</div>`
+    : `<div class="err"><strong>Chain does not verify.</strong>
+         ${esc((c.problems || []).join('; ')
+           || 'the log no longer matches the checkpoint published for it')}</div>`;
+
+  const anchored = c.anchored
+    ? `<p class="note">${c.anchored} older record(s) have been archived out of the cluster and
+         are taken from the anchor rather than re-read${
+           res.archived && res.archived.location ? ` (${esc(res.archived.location)})` : ''}.</p>`
+    : '';
+
+  const rows = (res.records || []).map(r => {
+    const key = `audit-${r.seq}`;
+    const detail = Object.entries(r.detail || {})
+      .map(([k, v]) => `<div class="drow"><span class="dk">${esc(k)}</span>
+             <span class="dv mono">${esc(v)}</span></div>`).join('');
+    return `<tr class="fx" data-key="${key}" tabindex="0" role="button" aria-expanded="false"
+                aria-label="Detail for record ${r.seq}">
+        <td class="mono">${r.seq}</td>
+        <td class="mono">${esc(String(r.time || '').replace('T', ' ').replace('Z', ''))}</td>
+        <td>${esc(r.type || '\u2014')}</td>
+        <td class="mono">${esc(r.subject || '\u2014')}</td>
+        <td class="mono">${esc(r.actor || '\u2014')}</td>
+      </tr>
+      <tr class="detail" data-for="${key}" hidden>
+        <td colspan="5"><div class="dwrap">
+          ${detail}
+          <div class="drow"><span class="dk">Hash</span>
+            <span class="dv mono">${esc(r.hash || '\u2014')}</span></div>
+          <div class="drow"><span class="dk">Follows</span>
+            <span class="dv mono">${esc(r.prevHash || 'nothing \u2014 first record')}</span></div>
+        </div></td>
+      </tr>`;
+  }).join('');
+
+  body.innerHTML = `
+    <p class="note" style="margin-top:0">Every verdict, risk acceptance, admission decision and
+      promotion is written here as a hash-linked record. The chain is what remains once scans
+      age out, so it is the durable answer to what was decided and by whom.</p>
+    ${status}
+    ${anchored}
+    <p class="note">Showing the ${res.showing} most recent of ${res.retained} held in the
+      cluster.</p>
+    <div class="tscroll tcap"><table>
+      <thead><tr><th>#</th><th>Time (UTC)</th><th>Event</th><th>Subject</th><th>Actor</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="empty">No decisions recorded yet.</td></tr>'}</tbody>
+    </table></div>`;
+
+  body.querySelectorAll('tr.fx').forEach(tr => {
+    const flip = () => {
+      const d = body.querySelector(`tr.detail[data-for="${CSS.escape(tr.dataset.key)}"]`);
+      tr.classList.toggle('open');
+      const open = tr.classList.contains('open');
+      tr.setAttribute('aria-expanded', String(open));
+      if (d) d.hidden = !open;
+    };
+    tr.onclick = flip;
+    tr.onkeydown = e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
+    };
+  });
+}
+
 function cliDrawer() {
   const img = 'ghcr.io/davano-innovation-lab/cupel-operator:0.8.1';
   const blocks = [
@@ -1498,13 +1588,17 @@ function openDrawer(view) {
   drawerView = view;
   lastFocus = document.activeElement;
   document.getElementById('drawer-title').textContent =
-    view === 'queue' ? 'Review queue' : 'Get the CLI';
+    view === 'queue' ? 'Review queue'
+      : view === 'audit' ? 'Audit log'
+      : 'Get the CLI';
   const drawer = document.getElementById('drawer');
   drawer.hidden = false;
   document.getElementById('scrim').hidden = false;
   // Without this the page behind keeps scrolling under the panel.
   document.body.style.overflow = 'hidden';
-  if (view === 'queue') renderQueueDrawer(); else cliDrawer();
+  if (view === 'queue') renderQueueDrawer();
+  else if (view === 'audit') auditDrawer();
+  else cliDrawer();
   // Move focus in, or a keyboard user opens a dialog and stays on the page
   // behind it with no way to know anything happened.
   (drawer.querySelector(FOCUSABLE) || drawer).focus();
@@ -1591,6 +1685,7 @@ function applyIdentity(who) {
   toggle('scanform', can('scan:create'));
   toggle('runbar', can('scan:create'));
   toggle('src-toggle', can('admin:manage'));
+  toggle('open-audit', can('view:audit'));
   document.querySelectorAll('[data-needs-manage]').forEach(el => {
     el.hidden = !can('admin:manage');
   });
@@ -1965,6 +2060,7 @@ renderRunbar();
 renderScannerChoices();
 document.getElementById('open-queue').onclick = () => openDrawer('queue');
 document.getElementById('open-cli').onclick = () => openDrawer('cli');
+document.getElementById('open-audit').onclick = () => openDrawer('audit');
 document.getElementById('drawer-close').onclick = closeDrawer;
 document.getElementById('scrim').onclick = closeDrawer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });

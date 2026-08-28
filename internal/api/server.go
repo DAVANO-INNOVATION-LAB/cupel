@@ -103,6 +103,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /api/policies", s.authenticated(s.handlePolicies))
 	mux.Handle("GET /api/scanners", s.authenticated(s.handleScanners))
 	mux.Handle("GET /api/compliance", s.authenticated(s.handleCompliance))
+	mux.Handle("GET /api/audit", s.authenticated(s.handleAudit))
 
 	mux.HandleFunc("GET /", s.handleConsole)
 	return securityHeaders(mux)
@@ -171,10 +172,7 @@ func (s *Server) authenticated(next func(http.ResponseWriter, *http.Request, aut
 
 func (s *Server) handleWhoami(w http.ResponseWriter, r *http.Request, sub authz.Subject) {
 	caps := map[string]bool{}
-	for _, c := range []authz.Capability{
-		authz.CapViewInventory, authz.CapViewFindings, authz.CapViewFindingPath,
-		authz.CapViewCompliance, authz.CapRunScan, authz.CapWaive, authz.CapManage,
-	} {
+	for _, c := range authz.AllCapabilities() {
 		caps[string(c)] = sub.Can(c)
 	}
 	roles := make([]string, 0, len(sub.Roles))

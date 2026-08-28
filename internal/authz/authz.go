@@ -70,27 +70,53 @@ const (
 	CapRunScan         Capability = "scan:create"
 	CapWaive           Capability = "finding:waive" // create ArtifactExceptions
 	CapManage          Capability = "admin:manage"  // policies, connectors, config
+	// CapViewAudit reads the tamper-evident decision log. It is separate from
+	// compliance because the two answer different questions: compliance says
+	// which controls a model satisfies, the audit chain says who decided what
+	// and proves the record has not been edited since.
+	CapViewAudit Capability = "view:audit"
 )
 
 var roleCapabilities = map[Role][]Capability{
 	RoleAdmin: {
 		CapViewInventory, CapViewFindings, CapViewFindingPath,
-		CapViewCompliance, CapRunScan, CapWaive, CapManage,
+		CapViewCompliance, CapRunScan, CapWaive, CapManage, CapViewAudit,
 	},
 	RoleSecurity: {
 		CapViewInventory, CapViewFindings, CapViewFindingPath,
-		CapViewCompliance, CapRunScan, CapWaive,
+		CapViewCompliance, CapRunScan, CapWaive, CapViewAudit,
 	},
 	RoleOwner: {
 		CapViewInventory, CapViewFindings, CapViewFindingPath,
 		CapViewCompliance, CapRunScan,
 	},
 	RoleAuditor: {
-		CapViewInventory, CapViewFindings, CapViewCompliance,
+		CapViewInventory, CapViewFindings, CapViewCompliance, CapViewAudit,
 	},
 	RoleViewer: {
 		CapViewInventory,
 	},
+}
+
+// AllCapabilities lists every capability any role grants, sorted.
+//
+// Callers that describe a subject enumerate this rather than keeping their own
+// list. A hand-maintained copy goes stale silently: the capability exists, the
+// server enforces it, and the console never hears about it — so the feature it
+// gates stays invisible with nothing to indicate why.
+func AllCapabilities() []Capability {
+	seen := map[Capability]bool{}
+	var out []Capability
+	for _, caps := range roleCapabilities {
+		for _, c := range caps {
+			if !seen[c] {
+				seen[c] = true
+				out = append(out, c)
+			}
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }
 
 // ParseRole validates a role name from a token claim or a binding.
