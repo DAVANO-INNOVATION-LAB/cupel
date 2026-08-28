@@ -38,6 +38,21 @@ When a view is narrowed by your role the console says so — "3 findings your
 role cannot see" — because a console that silently drops findings is
 indistinguishable from one reporting a clean model.
 
+## The audit log
+
+`auditor`, `security` and `admin` can open the decision log from the header: every
+verdict, risk acceptance, admission decision and promotion, as hash-linked
+records, with the result of verifying the chain shown against them. It is the
+record that outlives the rest — scans are pruned on a schedule and their findings
+go with them, while the chain stays.
+
+Reading it needs a cluster-wide binding, not only the role. The records name a
+subject as `model/version` with no namespace to filter on, and more importantly
+each record commits to the one before it: dropping the entries a tenant may not
+see breaks the links, so a filtered log would report itself as tampered with to a
+reader who had done nothing wrong. A namespace-scoped subject is told that
+plainly instead of being handed a partial chain.
+
 ## Starting a scan
 
 ![Starting a scan](images/console-scan.png)
