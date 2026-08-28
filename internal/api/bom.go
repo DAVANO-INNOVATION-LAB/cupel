@@ -88,6 +88,21 @@ func (s *Server) handleBOM(w http.ResponseWriter, r *http.Request, sub authz.Sub
 	// Absent is not the same as never produced, and the difference is what a
 	// reader needs: a scan that ran without the aibom stage looks identical to
 	// one whose document was lost unless the answer says which.
+	//
+	// The verdict outlives the scan, and it recorded whether a document was
+	// ever made. Consulting it separates the two causes that both look like
+	// "not here": telling somebody their policy is misconfigured when the truth
+	// is that the evidence expired sends them to edit a policy that was right.
+	if summary, ok := s.retainedSummary(r.Context(), sub, model, version); ok {
+		if produced, _ := summary["aibom"].(bool); produced {
+			writeJSON(w, http.StatusGone, map[string]string{
+				"error": "a bill of materials was produced for this model version, but the " +
+					"scan holding it has since been pruned; rescan to produce it again",
+			})
+			return
+		}
+	}
+
 	writeJSON(w, http.StatusNotFound, map[string]string{
 		"error": "no bill of materials for this model version; the scan may have run " +
 			"without the tessera scanner enabled in its policy",

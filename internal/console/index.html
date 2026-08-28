@@ -975,9 +975,45 @@ async function renderBOM(sel) {
     ).join('');
   } catch (e) {
     if (e instanceof NotSignedIn) throw e;
+    // 410 means a document existed and the scan holding it was pruned; 404
+    // means none was ever produced. Telling somebody to check their policy in
+    // the first case sends them to fix configuration that was never wrong.
+    const gone = /HTTP 410/.test(e.message || '');
     host.innerHTML = '<span class="bom-label">Bill of materials</span>' +
-      '<span class="bom-none">none recorded — the policy may not enable the tessera scanner</span>';
+      (gone
+        ? '<span class="bom-none">produced, but the scan holding it has been pruned — rescan to produce it again</span>'
+        : '<span class="bom-none">none recorded — the policy may not enable the tessera scanner</span>');
   }
+}
+
+// An empty table has three causes and they are not interchangeable: the model
+// was clean, a filter is hiding everything, or the scan that held the detail
+// has been pruned and only the counts survive. Printing "No findings recorded"
+// for all three tells somebody their model is fine when the truth may be that
+// the evidence expired.
+function plural(n, word) { return `${n} ${word}${n === 1 ? '' : 's'}`; }
+
+function emptyFindings(unfilteredCount) {
+  if (unfilteredCount > 0) return 'No findings match the current filter.';
+  // Withheld is not clean. Telling somebody whose role cannot read findings
+  // that none were recorded is the one wrong answer here: it reports a model
+  // with four critical findings as spotless to the person least able to check.
+  const red = findingsRedaction;
+  if (red && (red.hiddenFindings || red.detailWithheld)) {
+    return red.hiddenFindings
+      ? `${red.hiddenFindings} finding(s) are recorded here that your role cannot see.`
+      : 'Findings recorded here are withheld from your role.';
+  }
+  const r = retainedDetail;
+  if (r && r.findings > 0) {
+    const per = (r.scanners || []).filter(x => x.findings > 0)
+      .map(x => `${x.findings} from ${esc(x.scanner)}`).join(', ');
+    const when = r.lastScanTime
+      ? ` on ${new Date(r.lastScanTime).toLocaleDateString()}` : '';
+    return `${r.findings} finding(s) were recorded${when}${per ? ` — ${per}` : ''}. `
+      + 'The scan holding the detail has since been pruned; rescan to read it again.';
+  }
+  return 'No findings recorded.';
 }
 
 function renderFindings(scanReports, scans, sel) {
@@ -1020,7 +1056,7 @@ function renderFindings(scanReports, scans, sel) {
     ? ['critical', 'high', 'medium', 'low'].filter(s => counts[s])
         .map(s => `<span class="sev tag ${s} ${filters.severity === s ? 'on' : ''}" data-sev="${s}"
                      title="Show only ${s}">${counts[s]} ${s}</span>`).join('')
-      + `<span class="fcount">${everything.length} total across ${new Set(everything.map(f => f.scanner)).size} scanners</span>`
+      + `<span class="fcount">${everything.length} total across ${plural(new Set(everything.map(f => f.scanner)).size, 'scanner')}</span>`
     : '';
   sum.querySelectorAll('[data-sev]').forEach(el => el.onclick = () => {
     filters.severity = filters.severity === el.dataset.sev ? null : el.dataset.sev;
@@ -1030,7 +1066,7 @@ function renderFindings(scanReports, scans, sel) {
 
   const tbody = document.getElementById('findings');
   if (!all.length) {
-    tbody.innerHTML = '<tr><td colspan="3" class="empty">No findings recorded.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="3" class="empty">${emptyFindings(everything.length)}</td></tr>`;
     return;
   }
 
@@ -1585,16 +1621,47 @@ function renderRedaction(red) {
     ${esc(parts.join('; '))}. Nothing here is missing by accident.</div>`;
 }
 
+// What a pruned scan left behind, when the API had to answer with counts
+// instead of findings. Reset on every load so it can never describe the
+// previously selected model.
+let retainedDetail = null;
+
+// The redaction the findings call reported. Held rather than rendered on the
+// spot because one notice is rendered from several sources, and whichever call
+// rendered last used to erase what the others had to say.
+let findingsRedaction = null;
+
+// Several calls can each narrow what is shown. The reader needs one notice
+// covering all of it, not whichever arrived last.
+function combineRedaction(...parts) {
+  const out = { hiddenModels: 0, hiddenFindings: 0, detailWithheld: false };
+  for (const p of parts) {
+    if (!p) continue;
+    out.hiddenModels += p.hiddenModels || 0;
+    out.hiddenFindings += p.hiddenFindings || 0;
+    out.detailWithheld = out.detailWithheld || !!p.detailWithheld;
+  }
+  return out;
+}
+
 // loadFindings fetches findings for the selected model only.
 //
 // There is no bulk endpoint on purpose: findings are redacted per subject, so
 // a whole-cluster list would either leak or be meaninglessly filtered.
 async function loadFindings(sel) {
-  if (!sel || !can('view:findings')) return [];
+  retainedDetail = null;
+  findingsRedaction = null;
+  // Deliberately not gated on view:findings. The server redacts per subject and
+  // answers a role without that capability with an empty list plus a count of
+  // what it withheld — which is the explanation the reader needs. Skipping the
+  // call to save a round trip threw that explanation away and left the panel
+  // claiming the model was clean.
+  if (!sel) return [];
   try {
     const res = await api(`/findings?model=${encodeURIComponent(sel.model)}` +
       `&version=${encodeURIComponent(sel.version)}`);
-    renderRedaction(res.redaction);
+    findingsRedaction = res.redaction || null;
+    retainedDetail = res.retained || null;
     // Group by scanner so the existing renderer sees report-shaped objects.
     const byScanner = {};
     for (const f of res.findings || []) {
@@ -1625,8 +1692,25 @@ const asConnector = c => ({
 
 async function refresh() {
   try {
+    // A role that cannot see compliance or exceptions is the ordinary case,
+    // not a failure: viewer is the most common role in an organisation.
+    // Fetching them unconditionally in one all-or-nothing batch meant a single
+    // 403 rejected the whole refresh, so a read-only user saw an empty console
+    // reporting that the API was unreachable — while the API had answered
+    // correctly and the inventory they were entitled to see sat unread in the
+    // response. Ask only for what the role permits, and let a section that
+    // fails degrade to empty instead of taking the page down with it.
+    const optional = (path, cap) =>
+      (cap && !can(cap)) ? Promise.resolve({}) : api(path).catch(e => {
+        if (e instanceof NotSignedIn) throw e;
+        return {};
+      });
     const [models, complianceRes, scansRes, exceptionsRes, connectorsRes] = await Promise.all([
-      api('/models'), api('/compliance'), api('/scans'), api('/exceptions'), api('/connectors'),
+      api('/models'),
+      optional('/compliance', 'view:compliance'),
+      optional('/scans', null),
+      optional('/exceptions', 'view:findings'),
+      optional('/connectors', null),
     ]);
     const msr = (models.models || []).map(asReport);
     const compliance = complianceRes.reports || [];
@@ -1637,7 +1721,7 @@ async function refresh() {
     // redacts them per subject, so there is no whole-cluster finding list to
     // hand out.
     const scanReports = await loadFindings(selected);
-    renderRedaction(models.redaction);
+    renderRedaction(combineRedaction(models.redaction, findingsRedaction));
     document.getElementById('err').innerHTML = '';
     renderSources(connectors);
     renderActive(scans);

@@ -45,6 +45,7 @@ func testServer(t *testing.T, objs ...runtime.Object) *Server {
 				{Group: "secops", Role: authz.RoleSecurity, AllNamespaces: true},
 				{Group: "team-a", Role: authz.RoleOwner, Namespaces: []string{"team-a"}},
 				{Group: "auditors", Role: authz.RoleAuditor, Namespaces: []string{"team-a"}},
+				{Group: "viewers", Role: authz.RoleViewer, Namespaces: []string{"team-a"}},
 			},
 		},
 		sessions: codec,

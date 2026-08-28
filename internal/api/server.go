@@ -254,11 +254,70 @@ func (s *Server) handleFindings(w http.ResponseWriter, r *http.Request, sub auth
 		}
 		views, r2 := authz.RedactFindings(sub, ns, rep.Findings, rep.Scanner)
 		out = append(out, views...)
-		if r2.HiddenFindings > 0 || r2.DetailWithheld {
-			red = r2
+		// Accumulate across reports rather than keeping the last one. Findings
+		// arrive per scanner, so assigning here reported only whatever the final
+		// scanner hid — telling a reader one finding was withheld when six were,
+		// and understating the gap exactly where it is least safe to.
+		red.HiddenFindings += r2.HiddenFindings
+		red.DetailWithheld = red.DetailWithheld || r2.DetailWithheld
+		if red.Reason == "" {
+			red.Reason = r2.Reason
 		}
 	}
+	// A scan is evidence and a verdict is a record, and the two do not have the
+	// same lifetime. ArtifactScanReports are garbage collected with the scan
+	// that produced them; the ModelSecurityReport deliberately outlives it, so
+	// a decision can still be read a year later. Once the scans are pruned,
+	// answering with an empty list is true and useless: the panel empties and
+	// nothing distinguishes a model that was clean from one whose detail simply
+	// expired. The verdict kept the counts, so hand those back instead.
+	if len(out) == 0 && len(owned) == 0 {
+		if summary, ok := s.retainedSummary(r.Context(), sub, model, version); ok {
+			writeJSON(w, http.StatusOK, map[string]any{
+				"findings": out, "redaction": red, "retained": summary,
+			})
+			return
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{"findings": out, "redaction": red})
+}
+
+// retainedSummary reports what a pruned scan left behind: the per-scanner
+// counts the verdict still carries. It is deliberately not a reconstruction of
+// the findings — those bytes are gone — only enough to say that something was
+// found here and that the detail is no longer held.
+func (s *Server) retainedSummary(ctx context.Context, sub authz.Subject, model, version string) (map[string]any, bool) {
+	var reports securityv1alpha1.ModelSecurityReportList
+	if err := s.k8s.List(ctx, &reports); err != nil {
+		return nil, false
+	}
+	for _, rep := range reports.Items {
+		if rep.Spec.ModelName != model || rep.Spec.ModelVersion != version {
+			continue
+		}
+		if !sub.CanSeeNamespace(rep.Namespace) {
+			continue
+		}
+		scanners := make([]map[string]any, 0, len(rep.Status.Scanners))
+		var total int32
+		for _, sc := range rep.Status.Scanners {
+			total += sc.Findings
+			scanners = append(scanners, map[string]any{
+				"scanner":    sc.Scanner,
+				"status":     sc.Status,
+				"findings":   sc.Findings,
+				"severities": sc.Severities,
+			})
+		}
+		return map[string]any{
+			"scanners":     scanners,
+			"findings":     total,
+			"lastScanTime": rep.Status.LastScanTime,
+			"aibom":        rep.Status.AIBOMRef != "",
+		}, true
+	}
+	return nil, false
 }
 
 type scanRequest struct {
