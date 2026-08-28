@@ -635,7 +635,15 @@ function renderInventory(allReports) {
   }
   // Default to the worst model, which is the one worth looking at first.
   if (!selected || !reports.some(r => keyOf(r.spec?.modelName, r.spec?.modelVersion) === keyOf(selected.model, selected.version))) {
-    const worst = [...reports].sort((a, b) => (b.status?.riskScore ?? 0) - (a.status?.riskScore ?? 0))[0];
+    // Break ties by name, not by whatever order the API listed them in.
+      // Dozens of models share a risk score, the list order is not guaranteed
+      // stable between calls, and this runs on a two-second refresh — so
+      // without a tiebreak the default selection wanders on its own, which
+      // looks exactly like clicking a row not working.
+      const worst = [...reports].sort((a, b) =>
+        ((b.status?.riskScore ?? 0) - (a.status?.riskScore ?? 0)) ||
+        keyOf(a.spec?.modelName, a.spec?.modelVersion)
+          .localeCompare(keyOf(b.spec?.modelName, b.spec?.modelVersion)))[0];
     selected = { model: worst.spec.modelName, version: worst.spec.modelVersion };
   }
 
@@ -972,7 +980,12 @@ function renderFindings(scanReports, scans, sel) {
 
   const everything = [];
   for (const rep of scanReports) {
-    if (sel && !scanBelongs.has(rep.scanRef)) continue;
+    // Only re-filter reports that say which scan they came from. Findings
+    // fetched for the selected model are already scoped by the server and
+    // carry no scanRef, so filtering them through a set of scan names dropped
+    // every one of them — the panel went blank the moment a model was picked,
+    // which reads as the row not being clickable at all.
+    if (sel && rep.scanRef && !scanBelongs.has(rep.scanRef)) continue;
     for (const f of rep.findings || []) everything.push({ ...f, scanner: rep.scanner || '—' });
   }
 
@@ -1394,7 +1407,7 @@ async function acceptRisk(model, version, btn) {
 
 // ------------------------------------------------------------------- the CLI
 function cliDrawer() {
-  const img = 'ghcr.io/davano-innovation-lab/cupel-operator:0.8.0';
+  const img = 'ghcr.io/davano-innovation-lab/cupel-operator:0.8.1';
   const blocks = [
     ['Run it from the operator image — nothing to install',
      `docker run --rm --network none -v "$PWD/model:/m:ro" \\\n  --entrypoint /cupel ${img} inspect /m`],
