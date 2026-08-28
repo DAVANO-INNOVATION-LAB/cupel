@@ -11,7 +11,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/compliance"
@@ -382,6 +384,32 @@ func (r *ComplianceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&securityv1alpha1.ModelSecurityReport{}).
 		Owns(&securityv1alpha1.ComplianceReport{}).
+		// A profile is what decides that anything is assessed at all, and it is
+		// written long after the models are. Watching only the reports means
+		// enabling a framework assesses nothing until each model happens to
+		// change again: the operator turns on NIST AI RMF and the compliance
+		// view stays empty with nothing to say why.
+		Watches(&securityv1alpha1.ComplianceProfile{},
+			handler.EnqueueRequestsFromMapFunc(r.modelsInNamespace)).
 		Named("compliance").
 		Complete(r)
+}
+
+// modelsInNamespace enqueues every model a profile could apply to.
+//
+// Profiles are few and written rarely, so re-assessing the namespace when one
+// changes costs a reconcile per model once, rather than leaving the answer
+// stale until something else happens to touch it.
+func (r *ComplianceReconciler) modelsInNamespace(ctx context.Context, obj client.Object) []reconcile.Request {
+	var list securityv1alpha1.ModelSecurityReportList
+	if err := r.List(ctx, &list, client.InNamespace(obj.GetNamespace())); err != nil {
+		return nil
+	}
+	out := make([]reconcile.Request, 0, len(list.Items))
+	for _, m := range list.Items {
+		out = append(out, reconcile.Request{
+			NamespacedName: client.ObjectKey{Name: m.Name, Namespace: m.Namespace},
+		})
+	}
+	return out
 }

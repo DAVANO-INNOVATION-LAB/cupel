@@ -164,6 +164,14 @@ tr.click:hover>td{background:var(--bg-inset)}
 @media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
 .panel{border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:12px;background:var(--bg-raised);overflow:hidden;margin-top:18px}
 .tscroll{overflow-x:auto}
+/* The inventory grows without limit — a cluster that has been scanning for a
+   while has hundreds of rows — and everything worth reading about the selected
+   model sits underneath it. Capping the table means the findings, the bill of
+   materials and the framework assessment stay on screen instead of being a
+   scroll away. */
+.tcap{max-height:22rem;overflow-y:auto;overflow-x:auto}
+.tcap thead th{position:sticky;top:0;z-index:1;background:var(--bg-raised)}
+.tcount{font:.7rem/1 var(--mono);color:var(--muted);padding:.5rem .1rem 0}
 table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:640px}
 th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top}
 thead th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);font-weight:500;background:var(--bg-inset)}
@@ -435,10 +443,11 @@ td:first-child{color:var(--text);font-weight:500}
     <div id="redaction"></div>
     <div class="stats" id="stats"></div>
     <div class="filters" id="invfilters"></div>
-    <div class="panel"><div class="tscroll"><table>
+    <div class="panel"><div class="tscroll tcap"><table>
       <thead><tr><th>Model</th><th>Version</th><th>Verdict</th><th>Risk</th><th>Triggered by</th><th>Malware</th><th>Secrets</th><th>Last scan</th></tr></thead>
       <tbody id="inv"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
     </table></div></div>
+    <div class="tcount" id="inv-count"></div>
   </section>
 
   <section>
@@ -664,6 +673,13 @@ function renderInventory(allReports) {
       <td class="mono">${ago(st.lastScanTime)}</td>
     </tr>`;
   }).join('');
+
+  const invCount = document.getElementById('inv-count');
+  if (invCount) {
+    invCount.textContent = reports.length === allReports.length
+      ? `${reports.length} model version(s) — the table scrolls`
+      : `${reports.length} of ${allReports.length} model version(s) match this filter`;
+  }
 
   tbody.querySelectorAll('tr[data-model]').forEach(tr => {
     const pick = () => { selected = { model: tr.dataset.model, version: tr.dataset.version }; refresh(); };
