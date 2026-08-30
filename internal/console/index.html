@@ -1149,7 +1149,19 @@ function renderCompliance(reports, sel) {
     (r.spec?.modelName === sel.model && r.spec?.modelVersion === sel.version));
   if (!mine.length) { el.innerHTML = '<div class="panel"><div class="empty">No compliance profile applies to this model.</div></div>'; return; }
 
-  el.innerHTML = mine.map(r => {
+  // Several profiles may assess the same framework — a baseline over every
+  // model and a stricter one scoped to a family, say. They carry different
+  // attestations, so they close different controls and their open counts differ
+  // legitimately. Rendered without saying which profile each came from, that
+  // reads as one framework contradicting itself.
+  const frameworks = new Set(mine.map(r => r.spec?.framework));
+  const overlap = mine.length > frameworks.size
+    ? `<p class="note" style="margin-top:0">More than one profile assesses this model against
+         the same framework. They differ in the attestations they carry, so the counts below
+         differ too — each is that profile's view, not a competing count of the same thing.</p>`
+    : '';
+
+  el.innerHTML = overlap + mine.map(r => {
     const st = r.status || {};
     const bars = (st.summary || []).map(s => {
       const parts = [
@@ -1182,7 +1194,9 @@ function renderCompliance(reports, sel) {
     return `<div class="panel">
       <div class="bars">
         <div class="brow" style="margin-bottom:4px">
-          <span class="fn" style="color:var(--text)">${esc(r.spec.framework)}</span>
+          <span class="fn" style="color:var(--text)">${esc(r.spec.framework)}
+            <span class="mono" style="color:var(--text-faint);font-weight:400">
+              ${esc(r.spec.profileRef || 'profile not recorded')}</span></span>
           <span class="mono" style="color:var(--text-faint)">${st.totalControls || 0} controls · ${st.automatableFull || 0} full · ${st.automatablePartial || 0} partial · ${st.attestationOnly || 0} attestation-only</span>
           <span><span class="pill ${st.conformant ? 'satisfied' : 'notsatisfied'}">${st.conformant ? 'Conformant' : (st.openControlCount || 0) + ' open'}</span></span>
         </div>
