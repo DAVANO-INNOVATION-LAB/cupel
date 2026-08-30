@@ -2,7 +2,6 @@ package console
 
 import (
 	"bytes"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -20,23 +19,22 @@ func TestTheConsoleCarriesNoFormerName(t *testing.T) {
 	}
 }
 
-// The console quotes an image tag in the command it invites people to copy, and
-// nothing recomputes it: it is a string in a static page. Left alone it goes
-// stale on the first release after somebody edits it, and the symptom is a
-// command that pulls a version nobody is running.
-func TestTheConsoleQuotesTheReleasedImageTag(t *testing.T) {
-	chart, err := os.ReadFile("../../deploy/helm/cupel/Chart.yaml")
-	if err != nil {
-		t.Skipf("chart not readable: %v", err)
+// The console used to carry its own copy of the image tag, kept honest by this
+// test failing whenever somebody edited one file and not the other. It now asks
+// the API for the tag of the binary actually serving the page, so what needs
+// guarding is the opposite: that no literal version creeps back in.
+//
+// The rest of the chain is enforced elsewhere — internal/scanners pins ImageTag
+// to the chart's appVersion, and internal/api hands that to the console at
+// sign-in — so a tag hardcoded here would be the one link nothing recomputes.
+func TestTheConsoleHardcodesNoImageTag(t *testing.T) {
+	if m := regexp.MustCompile(`cupel-operator:[0-9]\S*`).Find(IndexHTML); m != nil {
+		t.Errorf("the console pins %q rather than taking the tag the API reports; "+
+			"it goes stale on the first release after somebody forgets this file", m)
 	}
-	m := regexp.MustCompile(`(?m)^appVersion:\s*"?([0-9][^"\s]*)"?`).FindSubmatch(chart)
-	if m == nil {
-		t.Fatal("the chart declares no appVersion to compare against")
-	}
-	want := "cupel-operator:" + string(m[1])
-	if !bytes.Contains(IndexHTML, []byte(want)) {
-		got := regexp.MustCompile(`cupel-operator:[^'"\s]+`).Find(IndexHTML)
-		t.Errorf("the console offers %q but the chart deploys %q", got, want)
+	if !bytes.Contains(IndexHTML, []byte("cupel-operator:${VERSION")) {
+		t.Error("the console no longer interpolates the version the API reports, " +
+			"so it is describing some other install")
 	}
 }
 

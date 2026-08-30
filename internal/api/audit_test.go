@@ -15,6 +15,7 @@ import (
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 // chainObjects builds a sealed chain and the cluster objects holding it, so the
@@ -170,5 +171,25 @@ func TestWhoamiReportsEveryCapability(t *testing.T) {
 		if _, ok := got.Capabilities[string(c)]; !ok {
 			t.Errorf("whoami never mentions %q, so the console cannot gate on it", c)
 		}
+	}
+}
+
+// The console prints commands naming the operator image. It used to carry its
+// own copy of the tag, which stayed correct only for as long as somebody
+// remembered to edit two files at once.
+func TestWhoamiReportsTheRunningVersion(t *testing.T) {
+	s := testServer(t)
+	req := loggedIn(t, s, httptest.NewRequest(http.MethodGet, "/api/whoami", nil), "soc", "secops")
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, req)
+
+	var got struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Version != scanners.ImageTag {
+		t.Errorf("whoami reports version %q, want the shipped tag %q", got.Version, scanners.ImageTag)
 	}
 }

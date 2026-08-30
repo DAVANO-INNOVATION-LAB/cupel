@@ -413,10 +413,11 @@ td:first-child{color:var(--text);font-weight:500}
           <input id="s-secret" placeholder="Secret name — blank if the endpoint is open" spellcheck="false">
           <input id="s-secretkey" value="token" spellcheck="false">
         </div>
-        <small><b>Paste the token into a Secret, not into this page.</b> The console is served
-          through <span class="mono">kubectl proxy</span> over plain HTTP and a token typed here
-          would be readable in the request log of anything in between. The connector stores only
-          the reference:
+        <small><b>Paste the token into a Secret, not into this page.</b> The connector stores
+          only a reference, so the credential never passes through Cupel at all — it stays
+          between Kubernetes and the source. A token typed into this form would travel through
+          the console, the API and whatever sits in front of them, and any of those may keep a
+          log of it. Create it yourself instead:
           <br><span class="mono" id="s-secretcmd"></span></small>
       </label>
 
@@ -499,6 +500,10 @@ let me = null;
 const can = c => !!(me && me.capabilities && me.capabilities[c]);
 // The install namespace, reported by the server so command hints are accurate.
 let NS = 'cupel-system';
+// The running operator's image tag, from the API. Never hardcode it: the
+// commands below name an image, and a stale tag sends somebody to pull a
+// version that is not the one that scanned their models.
+let VERSION = '';
 
 // Selection is model *and* version: the same model can have several versions
 // with completely different postures, so filtering on the name alone would mix
@@ -1574,7 +1579,7 @@ async function auditDrawer() {
 }
 
 function cliDrawer() {
-  const img = 'ghcr.io/davano-innovation-lab/cupel-operator:0.8.1';
+  const img = `ghcr.io/davano-innovation-lab/cupel-operator:${VERSION || 'latest'}`;
   const blocks = [
     ['Run it from the operator image — nothing to install',
      `docker run --rm --network none -v "$PWD/model:/m:ro" \\\n  --entrypoint /cupel ${img} inspect /m`],
@@ -1690,6 +1695,7 @@ function showSignIn() {
 function applyIdentity(who) {
   me = who;
   if (who.namespace) NS = who.namespace;
+  if (who.version) VERSION = who.version;
   const bar = document.getElementById('whoami');
   if (bar) {
     const roles = (who.roles || []).join(', ') || 'no role';

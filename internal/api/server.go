@@ -13,6 +13,7 @@ import (
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
 // Config configures the console API.
@@ -183,7 +184,12 @@ func (s *Server) handleWhoami(w http.ResponseWriter, r *http.Request, sub authz.
 		// The namespace the pipeline writes into. The console needs it to show
 		// an accurate `kubectl create secret` command; guessing it would print
 		// instructions that quietly fail on a non-default install.
-		"namespace":    s.cfg.Namespace,
+		"namespace": s.cfg.Namespace,
+		// The tag of the image this binary ships in. The console prints copy
+		// and paste commands naming it, and a hand-maintained copy of a version
+		// string goes stale silently: the instructions keep working, they just
+		// stop describing the install they are being read on.
+		"version":      scanners.ImageTag,
 		"username":     sub.Username,
 		"roles":        roles,
 		"tenants":      sub.Scope.Namespaces,
