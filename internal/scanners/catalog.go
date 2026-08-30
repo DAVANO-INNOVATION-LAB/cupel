@@ -50,7 +50,7 @@ const DefaultRegistry = "docker.io/davanolab"
 // is right and pinning by hand is not: this sat at 0.2.4 across three releases
 // while every one of them published scanner images at the new version that
 // nothing ever pulled.
-const ImageTag = "0.8.1"
+const ImageTag = "0.9.0"
 
 // Definition describes one scanner in the catalog.
 type Definition struct {
