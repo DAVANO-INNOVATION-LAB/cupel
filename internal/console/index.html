@@ -271,8 +271,13 @@ td:first-child{color:var(--text);font-weight:500}
 
     <p class="note">The first two run the same five scanners and differ only in the artifact —
       that contrast is the point, since a scanner that can never return <em>Approved</em> is
-      not telling you anything. Each preset fills the form below, so you can edit it before
-      running, or ignore them and describe any model the cluster can reach.</p>
+      not telling you anything. The third narrows the scanners instead of the artifact, to
+      isolate what the model inspector alone sees. Each one fills the form below rather than
+      running, so you can edit it first.</p>
+
+    <p class="note">They name demo fixtures that a stock install does not ship. The artifact
+      each one points at will not resolve here until you replace it with a model of your
+      own — which is the field worth editing first.</p>
     <div class="runbar" id="runbar"></div>
 
     <form class="panel form" id="scanform" autocomplete="off">
@@ -736,6 +741,11 @@ function renderStats(reports) {
 
 // ---------------------------------------------------------------- run a scan
 
+// The examples below name fixtures that are deliberately NOT part of the chart:
+// two of the three are poisoned on purpose, and shipping a pickle that calls
+// os.system into every install to make a button work is a worse trade than the
+// button is worth. So they are presented as examples whose artifact has to be
+// replaced, not as scans that will run as-is.
 const FIXTURE = 'http://model-fixture.cupel-system.svc.cluster.local';
 const ALL_SCANNERS = ['clamav', 'trivy', 'syft', 'trufflehog', 'model-inspector'];
 
@@ -790,6 +800,7 @@ function renderRunbar() {
               title="Fills the form below — ${esc(p.scanners.length)} scanner(s)">
        <b>${esc(p.label)} <span class="pill ${cls(p.expect)}">${esc(p.expect)}</span></b>
        <span>${esc(p.hint)}</span>
+       <span>${esc(p.uri)}</span>
      </button>`).join('');
   document.querySelectorAll('.rbtn[data-preset]').forEach(b =>
     b.onclick = () => fillForm(PRESETS[+b.dataset.preset]));
@@ -846,7 +857,7 @@ function updatePreview() {
   if (!v.model || !v.uri) { el.textContent = ''; return; }
   const name = v.version
     ? k8sName(`${v.model}-${v.version}`)
-    : `${k8sName(v.model)}-demo-HHMMSS`;
+    : `${k8sName(v.model)}-adhoc-HHMMSS`;
   el.textContent = `→ ArtifactScan/${name}  ·  ${v.scanners.length || 'policy default'} scanner${v.scanners.length === 1 ? '' : 's'}`;
 
   let scheme = (v.uri.match(/^([a-z0-9+.-]+):\/\//i) || [])[1];
@@ -874,7 +885,7 @@ async function runScan(req, btn) {
   // its own inventory row rather than overwriting the last, and a unique scan
   // name cannot match leftover reports from an earlier run of the same name.
   const stamp = new Date().toTimeString().slice(0, 8).replace(/:/g, '');
-  const version = req.version || `demo-${stamp}`;
+  const version = req.version || `adhoc-${stamp}`;
   const name = k8sName(`${req.model}-${version}`);
 
   const spec = {
@@ -2083,7 +2094,6 @@ async function boot() {
     return;
   }
   await loadPolicies().catch(() => {});
-  fillForm(PRESETS[0]);
   refresh();
   // Polling only starts once somebody is signed in, so an expired session does
   // not sit in the background retrying every two seconds.
