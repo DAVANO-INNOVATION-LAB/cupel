@@ -76,6 +76,16 @@ func (e *ExceptionSigner) Handle(ctx context.Context, req admission.Request) adm
 				return admission.Denied(
 					"a signed exception cannot be widened; create a new exception so the approval is attributable")
 			}
+			// The reason is the justification a review actually reads, and the
+			// audit chain captured it once, at signing. Leaving it editable
+			// afterwards lets the stored object drift away from the record that
+			// proves what was approved — and the object is the copy anybody
+			// looking at this later would see.
+			if strings.TrimSpace(ex.Spec.Reason) != strings.TrimSpace(old.Spec.Reason) {
+				return admission.Denied(
+					"the reason on a signed exception cannot be rewritten; create a new exception so the " +
+						"justification stays attributable to the approval that carries it")
+			}
 		}
 	}
 

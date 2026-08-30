@@ -240,3 +240,42 @@ func TestAcceptedRiskIsRecordedWithTheAuthenticatedApprover(t *testing.T) {
 		t.Errorf("the stated reason must survive, got %q", got.Detail["reason"])
 	}
 }
+
+// The console tells an approver their reason is "not editable afterwards", and
+// the audit chain records it once, at signing. If the stored object can still be
+// rewritten, the copy a reviewer reads drifts away from the copy the chain
+// proves — with the mutable one being the one on screen.
+func TestASignedReasonCannotBeRewritten(t *testing.T) {
+	signed := exception(func(e *securityv1alpha1.ArtifactException) {
+		e.Spec.ApprovedBy = "security@example.test"
+		e.Spec.Reason = "reviewed with the model owner; the flagged call compiles CUDA kernels"
+	})
+
+	edited := signed.DeepCopy()
+	edited.Spec.Reason = "looked fine to me"
+
+	resp := signRequest(t, *edited, "security@example.test",
+		[]string{"secops"}, admissionv1.Update, &signed)
+	if resp.Allowed {
+		t.Fatal("a signed exception's reason was rewritten in place")
+	}
+	if !strings.Contains(resp.Result.Message, "cannot be rewritten") {
+		t.Errorf("denied without explaining why: %q", resp.Result.Message)
+	}
+}
+
+// Whitespace-only differences are not a rewrite; denying them would block
+// harmless re-applies (kubectl apply, GitOps) with a message about tampering.
+func TestReapplyingTheSameReasonIsAllowed(t *testing.T) {
+	signed := exception(func(e *securityv1alpha1.ArtifactException) {
+		e.Spec.ApprovedBy = "security@example.test"
+		e.Spec.Reason = "accepted for the pilot"
+	})
+	same := signed.DeepCopy()
+	same.Spec.Reason = "  accepted for the pilot\n"
+
+	if resp := signRequest(t, *same, "security@example.test",
+		[]string{"secops"}, admissionv1.Update, &signed); !resp.Allowed {
+		t.Fatalf("re-applying an unchanged reason was denied: %s", resp.Result.Message)
+	}
+}
