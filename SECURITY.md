@@ -54,6 +54,33 @@ closed:
   guardrail being consulted. That is the part of the problem an artifact scanner
   can actually settle, and it is what Cupel settles.
 
+## When the gate itself is not consulted
+
+The webhook is one component, and a component can be down. What happens then is
+a deployment choice, and it is worth stating plainly rather than leaving it to a
+comment in a values file.
+
+By default `webhook.failurePolicy` is `Ignore`: if the gate is unreachable or
+slow to answer, the API server admits the workload and Cupel is never asked.
+That keeps an outage in Cupel from blocking every model deployment in the
+cluster, and it means **anyone who can disrupt Cupel can also bypass it**. Set
+it to `Fail` where that trade is the wrong way round; the gate then blocks
+deployments while it is unavailable, so run more than one replica if you do.
+
+Two related defaults follow the same reasoning and are not configurable:
+
+- The `SecurityException` and promotion webhooks are pinned to `Fail`. An
+  exception is a written record that risk was accepted, and one admitted while
+  the validator was down is a record nobody checked.
+- There is no self-signed certificate fallback. A webhook whose certificate the
+  API server cannot verify is skipped silently under `Ignore`, which looks
+  exactly like a working gate.
+
+An approval is also a statement about what was examined. When part of an
+artifact could not be read, the verdict says so — the admission response carries
+a warning naming how much went unread, the decision is recorded, and
+`blockUnexamined` on the scan policy refuses such artifacts outright.
+
 ## What counts as a vulnerability here
 
 Cupel is a security tool, which makes the boundary worth stating plainly.

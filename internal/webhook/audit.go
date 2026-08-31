@@ -47,6 +47,7 @@ var auditableOutcomes = map[string]bool{
 	metrics.OutcomeAllowedWarn:         true,
 	metrics.OutcomeAllowedSkipped:      true,
 	metrics.OutcomeAllowedUnidentified: true,
+	metrics.OutcomeAllowedUnexamined:    true,
 }
 
 // recordDecision appends the admission decision to the audit chain when the
