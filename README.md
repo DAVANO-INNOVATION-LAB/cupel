@@ -108,13 +108,41 @@ metadata:
   name: model-registry
   namespace: cupel-system
 spec:
-  endpoint: https://model-registry.example.com
+  type: KubeflowModelRegistry
+  registryURL: https://model-registry.example.com
   pollInterval: 5m
 ```
 
 Every version it has not seen opens a scan. The verdict lands on a
 `ModelSecurityReport`, is written back to the registry, and the admission
 webhook reads it when a workload asks to run that model.
+
+Cupel speaks the Kubeflow and OpenShift AI Model Registry API and MLflow's
+directly. It is not limited to them. A `Declared` connector takes the list of
+versions instead of discovering it, and their bytes may live behind any scheme
+the resolvers read — so whatever tracks models upstream, the scanning, policy,
+promotion and admission path is the same one:
+
+```yaml
+apiVersion: security.davano.io/v1alpha1
+kind: ModelRegistryConnector
+metadata:
+  name: declared
+  namespace: cupel-system
+spec:
+  type: Declared
+  models:
+    - name: fraud-detector
+      version: "3"
+      uri: s3://models/fraud-detector/3/model.safetensors
+    - name: triage
+      version: "2026.08"
+      uri: oci://registry.example.com/models/triage:2026.08
+```
+
+Discovery is then the caller's job — a version nobody lists is a version nobody
+scans — and anything that can render a list (a CI job, a GitOps repository, a
+registry with no client here) becomes a source.
 
 Promotion is explicit. A version approved for `dev` is not approved for `prod`
 until a `PromotionRequest` says so, and the gate refuses a workload that
@@ -165,7 +193,8 @@ verify` checks them against it.
 | | |
 |---|---|
 | Formats | GGUF, safetensors, ONNX, pickle, PyTorch, Keras, SavedModel, NumPy, archives |
-| Sources | Hugging Face, S3 and compatible, OCI and ModelCar, PVC, MLflow, Kubeflow and Red Hat OpenShift AI model registries |
+| Registries | Kubeflow and Red Hat OpenShift AI Model Registry, MLflow, or `Declared` for any other — the list is supplied instead of discovered |
+| Storage | Hugging Face, S3 and compatible, OCI and ModelCar, PVC, MLflow, HTTP |
 | Scanners | model inspection, plus ClamAV, Trivy, Grype, Syft and TruffleHog as Jobs |
 | Frameworks | NIST AI RMF 1.0, NIST SP 800-53r5, MITRE ATLAS 2026.07 |
 | Signing | Sigstore verification against declared trusted publishers |

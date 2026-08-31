@@ -33,22 +33,38 @@ const (
 const (
 	SourceKubeflow = "KubeflowModelRegistry"
 	SourceMLflow   = "MLflow"
+	SourceDeclared = "Declared"
 )
 
 // sourceFor builds the ModelSource behind a connector.
 //
-// Both registries go through one interface, so adding a third is an
+// Every type goes through one interface, so adding another is an
 // implementation rather than a parallel controller — registry scanning stays
 // one pipeline with several front doors.
+//
+// Declared is the door for everything without a built-in client. The interface
+// was always pluggable; the API enum was not, which meant an organisation
+// running neither Kubeflow nor MLflow could not connect a registry Cupel is
+// perfectly able to scan the contents of.
 func (r *ModelRegistryConnectorReconciler) sourceFor(
 	connector *securityv1alpha1.ModelRegistryConnector, token string,
 ) (modelsource.Source, error) {
+	// RegistryURL is optional in the schema so a declared connector is not
+	// made to invent a URL nobody dials; every type that does dial one is
+	// held to it here, where the type is known.
+	if connector.Spec.Type != SourceDeclared && connector.Spec.RegistryURL == "" {
+		return nil, fmt.Errorf("connector type %q requires spec.registryURL",
+			orDefault(connector.Spec.Type, SourceKubeflow))
+	}
+
 	switch connector.Spec.Type {
 	case SourceMLflow:
 		return modelsource.NewMLflow(modelsource.MLflowOptions{
 			BaseURL: connector.Spec.RegistryURL,
 			Token:   token,
 		}), nil
+	case SourceDeclared:
+		return modelsource.NewDeclaredFromSpec(connector.Spec.Models, nil), nil
 	case "", SourceKubeflow:
 		return modelsource.NewModelRegistry(registry.Options{
 			BaseURL:               connector.Spec.RegistryURL,
@@ -56,8 +72,8 @@ func (r *ModelRegistryConnectorReconciler) sourceFor(
 			InsecureSkipTLSVerify: connector.Spec.InsecureSkipTLSVerify,
 		}, nil), nil
 	default:
-		return nil, fmt.Errorf("unknown connector type %q; want %s or %s",
-			connector.Spec.Type, SourceKubeflow, SourceMLflow)
+		return nil, fmt.Errorf("unknown connector type %q; want %s, %s, or %s",
+			connector.Spec.Type, SourceKubeflow, SourceMLflow, SourceDeclared)
 	}
 }
 
@@ -292,4 +308,14 @@ func rescanDue(scan *securityv1alpha1.ArtifactScan, interval *metav1.Duration) (
 	}
 	return true, fmt.Sprintf("last verdict is %s old, interval is %s",
 		age.Round(time.Minute), interval.Duration)
+}
+
+// orDefault reports the connector type as the user set it, naming the default
+// when they left it empty, so the error says which type is being held to the
+// requirement.
+func orDefault(v, fallback string) string {
+	if v == "" {
+		return fallback
+	}
+	return v
 }

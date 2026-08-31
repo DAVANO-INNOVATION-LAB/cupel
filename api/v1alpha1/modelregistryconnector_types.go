@@ -14,8 +14,17 @@ type ModelRegistryConnectorSpec struct {
 	//
 	//	KubeflowModelRegistry  the OpenShift AI / Kubeflow Model Registry
 	//	MLflow                 an MLflow tracking server's model registry
+	//	Declared               the versions listed in spec.models, wherever
+	//	                       they are tracked upstream
 	//
-	// +kubebuilder:validation:Enum=KubeflowModelRegistry;MLflow
+	// Declared is the general case. The first two speak one registry's REST
+	// dialect each; an organisation running neither had no way in, because the
+	// pipeline was pluggable in the code and closed at the API. A declared
+	// connector names versions and where their bytes live, and the bytes may
+	// use any scheme the resolvers support, so the registry a team happens to
+	// run stops being a question Cupel answers on their behalf.
+	//
+	// +kubebuilder:validation:Enum=KubeflowModelRegistry;MLflow;Declared
 	// +kubebuilder:default=KubeflowModelRegistry
 	// +optional
 	Type string `json:"type,omitempty"`
@@ -32,7 +41,22 @@ type ModelRegistryConnectorSpec struct {
 
 	// RegistryURL is the base URL of the Model Registry REST API,
 	// e.g. https://model-registry.rhoai-model-registries.svc:8080
-	RegistryURL string `json:"registryURL"`
+	//
+	// Required for every type except Declared, which has no upstream API to
+	// call. The reconciler enforces that rather than the schema, so a
+	// declared connector is not made to invent a URL nobody dials.
+	// +optional
+	RegistryURL string `json:"registryURL,omitempty"`
+
+	// Models lists the versions a Declared connector scans. Ignored by the
+	// other types.
+	//
+	// The list is the whole discovery mechanism: a version nobody lists is a
+	// version nobody scans. Everything downstream of discovery — scanning,
+	// policy, promotion, admission — is the same path the built-in registries
+	// take.
+	// +optional
+	Models []DeclaredModel `json:"models,omitempty"`
 
 	// AuthSecretRef references a Secret containing a bearer token used to
 	// authenticate against the registry.
@@ -62,6 +86,24 @@ type ModelRegistryConnectorSpec struct {
 	// Model Registry as custom properties. Defaults to true.
 	// +optional
 	WriteBack *bool `json:"writeBack,omitempty"`
+}
+
+// DeclaredModel is one model version listed directly on a Declared connector.
+type DeclaredModel struct {
+	// Name identifies the model, as a human reads it.
+	Name string `json:"name"`
+
+	// Version identifies the version within the model.
+	Version string `json:"version"`
+
+	// URI locates the bytes. Any scheme the resolvers support: oci://,
+	// modelcar://, s3://, pvc://, hf://, mlflow://, http(s)://, kubeflow://.
+	URI string `json:"uri"`
+
+	// Format declares the artifact format the source believes the bytes to
+	// be. Advisory: the scanner reads the bytes and is not bound by it.
+	// +optional
+	Format string `json:"format,omitempty"`
 }
 
 // ModelRegistryConnectorStatus reports sync progress.

@@ -83,6 +83,41 @@ spec:
               insecureSkipTLSVerify:
                 description: InsecureSkipTLSVerify disables TLS certificate verification.
                 type: boolean
+              models:
+                description: |-
+                  Models lists the versions a Declared connector scans. Ignored by the
+                  other types.
+
+                  The list is the whole discovery mechanism: a version nobody lists is a
+                  version nobody scans. Everything downstream of discovery — scanning,
+                  policy, promotion, admission — is the same path the built-in registries
+                  take.
+                items:
+                  description: DeclaredModel is one model version listed directly
+                    on a Declared connector.
+                  properties:
+                    format:
+                      description: |-
+                        Format declares the artifact format the source believes the bytes to
+                        be. Advisory: the scanner reads the bytes and is not bound by it.
+                      type: string
+                    name:
+                      description: Name identifies the model, as a human reads it.
+                      type: string
+                    uri:
+                      description: |-
+                        URI locates the bytes. Any scheme the resolvers support: oci://,
+                        modelcar://, s3://, pvc://, hf://, mlflow://, http(s)://, kubeflow://.
+                      type: string
+                    version:
+                      description: Version identifies the version within the model.
+                      type: string
+                  required:
+                  - name
+                  - uri
+                  - version
+                  type: object
+                type: array
               policyRef:
                 description: |-
                   PolicyRef names the ArtifactScanPolicy applied to scans created by
@@ -97,6 +132,10 @@ spec:
                 description: |-
                   RegistryURL is the base URL of the Model Registry REST API,
                   e.g. https://model-registry.rhoai-model-registries.svc:8080
+
+                  Required for every type except Declared, which has no upstream API to
+                  call. The reconciler enforces that rather than the schema, so a
+                  declared connector is not made to invent a URL nobody dials.
                 type: string
               rescanInterval:
                 description: |-
@@ -115,18 +154,25 @@ spec:
                   so registry\nscanning is one pipeline with several front doors rather
                   than a\nseparate integration per vendor.\n\n\tKubeflowModelRegistry
                   \ the OpenShift AI / Kubeflow Model Registry\n\tMLflow                 an
-                  MLflow tracking server's model registry"
+                  MLflow tracking server's model registry\n\tDeclared               the
+                  versions listed in spec.models, wherever\n\t                       they
+                  are tracked upstream\n\nDeclared is the general case. The first
+                  two speak one registry's REST\ndialect each; an organisation running
+                  neither had no way in, because the\npipeline was pluggable in the
+                  code and closed at the API. A declared\nconnector names versions
+                  and where their bytes live, and the bytes may\nuse any scheme the
+                  resolvers support, so the registry a team happens to\nrun stops
+                  being a question Cupel answers on their behalf."
                 enum:
                 - KubeflowModelRegistry
                 - MLflow
+                - Declared
                 type: string
               writeBack:
                 description: |-
                   WriteBack controls whether scan summaries are written back into the
                   Model Registry as custom properties. Defaults to true.
                 type: boolean
-            required:
-            - registryURL
             type: object
           status:
             description: ModelRegistryConnectorStatus reports sync progress.
