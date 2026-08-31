@@ -6,6 +6,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // A default install has three writers before a single pod is admitted: the scan
@@ -65,5 +70,49 @@ func TestConcurrentAppendsDoNotDropRecords(t *testing.T) {
 	}
 	if v := VerifyFrom(records, cp.Anchor(), cp); !v.Valid {
 		t.Fatalf("concurrent appends produced a chain that does not verify: %v", v.Problems)
+	}
+}
+
+// alwaysTaken is a chain whose head is permanently contended: every position a
+// writer tries has just been claimed by somebody else.
+type alwaysTaken struct {
+	client.Client
+	attempts int64
+}
+
+func (c *alwaysTaken) Create(_ context.Context, o client.Object, _ ...client.CreateOption) error {
+	atomic.AddInt64(&c.attempts, 1)
+	return apierrors.NewAlreadyExists(
+		schema.GroupResource{Group: "security.davano.io", Resource: "auditrecords"},
+		o.GetName())
+}
+
+// The attempt ceiling is a runaway guard, not a deadline: what actually stops a
+// contended append is the caller's context. That only holds if the retry loop
+// gives the deadline up promptly — otherwise raising the ceiling trades a
+// dropped record for an admission webhook that hangs until Kubernetes times it
+// out, which is a worse failure and a harder one to see.
+func TestAContendedAppendStopsAtTheCallersDeadline(t *testing.T) {
+	stub := &alwaysTaken{Client: testRecorder(t).Client}
+	r := &Recorder{Client: stub, Namespace: "cupel-system"}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	_, err := r.Append(ctx, Record{Type: EventDeploymentAdmitted, Subject: "w/v"})
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("an append that never won a race reported success")
+	}
+	// Generous, because a loaded CI machine is slow — but far short of what
+	// 4096 attempts would take, which is the thing being ruled out.
+	if elapsed > 3*time.Second {
+		t.Errorf("the append ran %v past a 200ms deadline; the context is not bounding it", elapsed)
+	}
+	if n := atomic.LoadInt64(&stub.attempts); n >= maxAppendAttempts {
+		t.Errorf("burned the whole %d-attempt guard (%d) instead of stopping at the deadline",
+			maxAppendAttempts, n)
 	}
 }

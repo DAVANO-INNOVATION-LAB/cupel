@@ -8,7 +8,7 @@
 # CGO disabled, so GOARCH cross-compiles them natively — emulating this stage
 # under QEMU to produce an arm64 binary compiles perhaps twenty times slower
 # for an identical result. Only the tiny runtime stage below is arch-specific.
-FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/go-toolset:1.25 AS builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/go-toolset:1.26 AS builder
 
 WORKDIR /workspace
 

@@ -109,14 +109,20 @@ func (r *Recorder) Append(ctx context.Context, event Record) (*Record, error) {
 
 // Retry budget for a contended append.
 //
-// The ceiling is deliberately generous. Losing a race is not an error, it is
-// the mechanism working, and the cost of one more attempt is a Get and a
-// Create. The cost of giving up is a decision that happened and was never
-// recorded, which is the one thing the chain exists to prevent. Callers bound
-// this with their own deadline; the admission gate gives it three seconds that
-// nothing is waiting on.
+// Losing a race is not an error, it is the mechanism working, and the cost of
+// one more attempt is a Get and a Create. The cost of giving up is a decision
+// that happened and was never recorded, which is the one thing the chain exists
+// to prevent.
+//
+// The real bound is the caller's context — the admission gate gives this three
+// seconds that nothing is waiting on. The count below is only a runaway guard,
+// so it is set well past what any real deadline allows to reach: at the backoff
+// ceiling this is minutes of retrying, and a caller with a deadline stops long
+// before it. A count low enough to fire first is not a safety limit, it is a
+// second deadline nobody chose — and it fires on exactly the writer that was
+// unluckiest rather than the one that was slowest.
 const (
-	maxAppendAttempts = 64
+	maxAppendAttempts = 4096
 	minAppendBackoff  = 250 * time.Microsecond
 	maxAppendBackoff  = 25 * time.Millisecond
 )
