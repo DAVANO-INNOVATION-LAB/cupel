@@ -196,6 +196,25 @@ func (g *ModelGate) Handle(ctx context.Context, req admission.Request) admission
 		}
 	}
 
+	// An approval over a partly-read artifact is still an approval — whether
+	// to refuse one is the scan policy's call, not the gate's, and overriding
+	// it here would silently change what a cluster admits. What the gate must
+	// not do is report it as though the whole artifact was examined: that is
+	// the same fail-open one level up, where the reason string is the only
+	// thing an operator and the audit trail ever see.
+	if n := totalCounts(report.Status.Unexamined); n > 0 {
+		outcome = metrics.OutcomeAllowedUnexamined
+		reason = fmt.Sprintf("approved over a partially read artifact (%d unexamined)", n)
+		resp := admission.Allowed(fmt.Sprintf(
+			"cupel: model %q version %q approved (risk score %d) over a partially read artifact",
+			ref.Model, ref.Version, report.Status.RiskScore))
+		resp.Warnings = append(resp.Warnings, fmt.Sprintf(
+			"cupel: %d part(s) of model %q version %q were never read, so this approval does not "+
+				"cover the whole artifact; set blockUnexamined on the scan policy to refuse these",
+			n, ref.Model, ref.Version))
+		return resp
+	}
+
 	return admission.Allowed(fmt.Sprintf(
 		"cupel: model %q version %q approved (risk score %d)", ref.Model, ref.Version, report.Status.RiskScore))
 }
@@ -448,4 +467,9 @@ func (g *ModelGate) promotionModeFor(ctx context.Context, namespace string, anno
 		return PromotionRequire
 	}
 	return PromotionRequire
+}
+
+// totalCounts sums a SeverityCounts across every bucket.
+func totalCounts(c securityv1alpha1.SeverityCounts) int32 {
+	return c.Critical + c.High + c.Medium + c.Low + c.Unknown
 }

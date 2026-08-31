@@ -32,6 +32,18 @@ type ModelSecurityReportStatus struct {
 	Secrets string `json:"secrets,omitempty"`
 	// +optional
 	CVEs SeverityCounts `json:"cves,omitempty"`
+	// Unexamined counts the findings reporting that part of the artifact was
+	// never read, carried up from the scan so the admission gate can see it.
+	//
+	// Whether an unexamined artifact is refused is the scan policy's call
+	// (ArtifactScanPolicy.blockUnexamined). What this field settles is
+	// narrower and applies whichever way that is set: without it an approval
+	// over a partially-read artifact is byte-for-byte an approval over a fully
+	// read one, so the gate could not tell them apart and neither could the
+	// audit trail it writes. A verdict is a statement about what was examined,
+	// and it has to carry how much that was.
+	// +optional
+	Unexamined SeverityCounts `json:"unexamined,omitempty"`
 	// SBOMRef names the ArtifactScanReport containing the SBOM.
 	// +optional
 	SBOMRef string `json:"sbomRef,omitempty"`

@@ -1119,6 +1119,7 @@ func (in *ModelSecurityReportSpec) DeepCopy() *ModelSecurityReportSpec {
 func (in *ModelSecurityReportStatus) DeepCopyInto(out *ModelSecurityReportStatus) {
 	*out = *in
 	out.CVEs = in.CVEs
+	out.Unexamined = in.Unexamined
 	if in.Scanners != nil {
 		in, out := &in.Scanners, &out.Scanners
 		*out = make([]ScannerResult, len(*in))

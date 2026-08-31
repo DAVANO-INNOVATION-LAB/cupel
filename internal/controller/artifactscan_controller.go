@@ -483,6 +483,7 @@ func (r *ArtifactScanReconciler) upsertModelSecurityReport(ctx context.Context, 
 	report.Status.Malware = eval.MalwareStatus
 	report.Status.Secrets = eval.SecretsStatus
 	report.Status.CVEs = policy.FromCounts(eval.CVEs)
+	report.Status.Unexamined = totalUnexamined(scan.Status.Results)
 	report.Status.SignatureVerified = eval.SignatureVerified
 	report.Status.Scanners = scan.Status.Results
 	report.Status.LastScanTime = &now
@@ -661,4 +662,21 @@ func (r *ArtifactScanReconciler) recordVerdict(
 		log.FromContext(ctx).Error(err, "could not record the verdict in the audit log",
 			"scan", scan.Name, "verdict", eval.Verdict)
 	}
+}
+
+// totalUnexamined sums what every scanner reported it could not read.
+//
+// The counts live per-scanner, and the report is the only thing the admission
+// gate sees. Aggregating here is what lets an approval say how much of the
+// artifact it is actually an approval of.
+func totalUnexamined(results []securityv1alpha1.ScannerResult) securityv1alpha1.SeverityCounts {
+	var t securityv1alpha1.SeverityCounts
+	for _, r := range results {
+		t.Critical += r.Unexamined.Critical
+		t.High += r.Unexamined.High
+		t.Medium += r.Unexamined.Medium
+		t.Low += r.Unexamined.Low
+		t.Unknown += r.Unexamined.Unknown
+	}
+	return t
 }

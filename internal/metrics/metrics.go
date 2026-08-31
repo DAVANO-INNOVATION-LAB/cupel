@@ -26,7 +26,12 @@ const (
 	// from OutcomeAllowed because the two are opposite facts — one is an
 	// approval, the other is the gate admitting that it did not gate.
 	OutcomeAllowedUnidentified = "allowed_unidentified_model"
-	OutcomeError               = "error"
+	// OutcomeAllowedUnexamined is an approved model admitted while part of its
+	// artifact was never read. Counted apart from OutcomeAllowed so a cluster
+	// admitting on partial scans is visible on a dashboard, rather than only
+	// to someone who thinks to read the report.
+	OutcomeAllowedUnexamined = "allowed_unexamined"
+	OutcomeError             = "error"
 )
 
 var (
