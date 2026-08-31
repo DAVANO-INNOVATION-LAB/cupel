@@ -65,7 +65,9 @@ func (d DirSink) Put(_ context.Context, name string, data []byte) (string, error
 	// Write to a neighbour and rename, so a crash mid-write cannot leave a
 	// truncated segment sitting where a complete one is expected.
 	tmp := path + ".partial"
-	if err := os.WriteFile(tmp, data, 0o640); err != nil {
+	// 0600: an archived segment is audit evidence read back by this process
+	// alone. Nothing else in the pod needs it, so nothing else is given it.
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return "", err
 	}
 	if err := os.Rename(tmp, path); err != nil {
@@ -245,7 +247,7 @@ func (a *Archiver) Run(ctx context.Context) (int, error) {
 // reject discards a segment that could not be trusted and returns why.
 func (a *Archiver) reject(ctx context.Context, name string, cause error) error {
 	if err := discard(ctx, a.Sink, name); err != nil {
-		return fmt.Errorf("%w (and the unusable segment could not be removed: %v)", cause, err)
+		return fmt.Errorf("%w (and the unusable segment could not be removed: %w)", cause, err)
 	}
 	return cause
 }

@@ -10,9 +10,11 @@ import (
 // Property keys Cupel writes back into the Model Registry. They are namespaced
 // so they never collide with user-defined properties.
 const (
-	PropVerdict      = "cupel.security/verdict"
-	PropRiskScore    = "cupel.security/risk-score"
-	PropMalware      = "cupel.security/malware"
+	PropVerdict   = "cupel.security/verdict"
+	PropRiskScore = "cupel.security/risk-score"
+	PropMalware   = "cupel.security/malware"
+	// #nosec G101 -- a registry property key, not a credential: this names the
+	// field a secret-scanning verdict is published under.
 	PropSecrets      = "cupel.security/secrets"
 	PropCVECritical  = "cupel.security/cve-critical"
 	PropCVEHigh      = "cupel.security/cve-high"

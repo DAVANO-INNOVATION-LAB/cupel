@@ -399,12 +399,6 @@ func (g *ModelGate) SetupWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-// modelReportName mirrors the controller's naming so the gate finds the same
-// report the scan pipeline wrote.
-func modelReportName(model, version string) string {
-	return controller.ModelReportName(model, version)
-}
-
 func contains(list []string, value string) bool {
 	for _, item := range list {
 		if strings.EqualFold(item, value) {

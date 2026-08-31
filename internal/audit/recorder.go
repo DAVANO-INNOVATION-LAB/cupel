@@ -136,6 +136,8 @@ func backOff(ctx context.Context, attempt int) error {
 	// Full jitter across the window. Breaking the lockstep is the point, so
 	// the spread matters more than the delay: writers that wake at different
 	// moments stop colliding, writers that wake together never do.
+	// #nosec G404 -- backoff jitter, not a secret: the value only decides how
+	// long a losing writer waits, and predicting it wins an attacker nothing.
 	d = time.Duration(rand.Int64N(int64(d))) + minAppendBackoff
 
 	t := time.NewTimer(d)
