@@ -195,6 +195,40 @@ jobs:
             kubectl kustomize "$o" | validate
           done
 
+  cluster:
+    name: Cluster conformance (k8s ${{ matrix.k8s }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest release the manifests claim, one middle, and current.
+        # Kubernetes version is what actually varies the API surface; the
+        # managed distributions (EKS, GKE, AKS) are conformant Kubernetes and
+        # are not reachable from a runner, so they are not claimed as tested
+        # here. OpenShift differs in its cert mode, which the packaging job
+        # already renders and validates.
+        k8s:
+          - v1.29.14
+          - v1.31.0
+          - v1.33.1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: helm/kind-action@v1
+        with:
+          install_only: true
+
+      # Rendering a chart proves the templates produce YAML. This proves the
+      # CRDs apply, the operator starts, the webhook is reachable with a
+      # verified certificate, and an upgrade over an existing release survives
+      # a CRD schema change — the failures that happen on a user's cluster and
+      # not on ours.
+      - name: Install, gate, upgrade, roll back
+        run: ./hack/cluster-conformance.sh kindest/node:${{ matrix.k8s }}
+
   image:
     name: Container image builds
     runs-on: ubuntu-latest
