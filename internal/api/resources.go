@@ -15,6 +15,7 @@ import (
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/indexes"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
 
@@ -408,8 +409,19 @@ func (s *Server) handleCompliance(w http.ResponseWriter, r *http.Request, sub au
 		forbid(w, "your role cannot see compliance reports")
 		return
 	}
+	// A compliance report carries every control it assessed, so the whole
+	// collection is large in exactly the way a poll should not be: the console
+	// asks every couple of seconds and reads one model's answer out of it.
+	// Narrowing here is what keeps that from growing with the cluster.
+	var opts []client.ListOption
+	model, version := r.URL.Query().Get("model"), r.URL.Query().Get("version")
+	if model != "" && version != "" {
+		opts = append(opts, client.MatchingFields{
+			indexes.ByModel: indexes.ModelKey(model, version)})
+	}
+
 	var list securityv1alpha1.ComplianceReportList
-	if err := s.k8s.List(r.Context(), &list); err != nil {
+	if err := s.k8s.List(r.Context(), &list, opts...); err != nil {
 		internalError(w, "cannot list compliance reports")
 		return
 	}

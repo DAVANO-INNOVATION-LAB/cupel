@@ -11,6 +11,7 @@ import (
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/controller"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/indexes"
 )
 
 // handleBOM serves the bill of materials a model's scan produced.
@@ -29,19 +30,15 @@ func (s *Server) handleBOM(w http.ResponseWriter, r *http.Request, sub authz.Sub
 	}
 
 	var scans securityv1alpha1.ArtifactScanList
-	if err := s.k8s.List(r.Context(), &scans); err != nil {
+	if err := s.k8s.List(r.Context(), &scans,
+		client.MatchingFields{indexes.ByModel: indexes.ModelKey(model, version)}); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "cannot list scans"})
 		return
 	}
 
 	// Most recent scan first: a model rescanned yesterday should hand back
 	// yesterday's document, not the first one ever produced for it.
-	var candidates []securityv1alpha1.ArtifactScan
-	for _, sc := range scans.Items {
-		if sc.Spec.ModelName == model && sc.Spec.ModelVersion == version {
-			candidates = append(candidates, sc)
-		}
-	}
+	candidates := scans.Items
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[j].CreationTimestamp.Before(&candidates[i].CreationTimestamp)
 	})

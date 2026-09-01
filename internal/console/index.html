@@ -1770,6 +1770,24 @@ function combineRedaction(...parts) {
   return out;
 }
 
+// loadCompliance fetches the assessments for the selected model only.
+//
+// A compliance report carries every control it assessed, so the whole
+// collection is by far the largest thing this page could ask for — and the page
+// asks on a timer. Only one model's assessments are ever rendered, so only one
+// model's are fetched.
+async function loadCompliance(sel) {
+  if (!sel || !can('view:compliance')) return [];
+  try {
+    const res = await api(`/compliance?model=${encodeURIComponent(sel.model)}` +
+      `&version=${encodeURIComponent(sel.version)}`);
+    return res.reports || [];
+  } catch (e) {
+    if (e instanceof NotSignedIn) throw e;
+    return [];
+  }
+}
+
 // loadFindings fetches findings for the selected model only.
 //
 // There is no bulk endpoint on purpose: findings are redacted per subject, so
@@ -1831,15 +1849,13 @@ async function refresh() {
         if (e instanceof NotSignedIn) throw e;
         return {};
       });
-    const [models, complianceRes, scansRes, exceptionsRes, connectorsRes] = await Promise.all([
+    const [models, scansRes, exceptionsRes, connectorsRes] = await Promise.all([
       api('/models'),
-      optional('/compliance', 'view:compliance'),
       optional('/scans', null),
       optional('/exceptions', 'view:findings'),
       optional('/connectors', null),
     ]);
     const msr = (models.models || []).map(asReport);
-    const compliance = complianceRes.reports || [];
     const scans = (scansRes.scans || []).map(asScan);
     const exceptions = (exceptionsRes.exceptions || []).map(asException);
     const connectors = (connectorsRes.connectors || []).map(asConnector);
@@ -1847,6 +1863,7 @@ async function refresh() {
     // redacts them per subject, so there is no whole-cluster finding list to
     // hand out.
     const scanReports = await loadFindings(selected);
+    const compliance = await loadCompliance(selected);
     renderRedaction(combineRedaction(models.redaction, findingsRedaction));
     document.getElementById('err').innerHTML = '';
     renderSources(connectors);

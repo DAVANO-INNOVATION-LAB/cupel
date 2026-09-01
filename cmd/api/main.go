@@ -21,16 +21,20 @@ import (
 	"syscall"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/api"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/audit"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/console"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/indexes"
 )
 
 func main() {
@@ -99,6 +103,32 @@ func main() {
 	}
 }
 
+// stripServerMetadata drops bookkeeping the console never reads before an
+// object is cached. It must not touch anything a handler depends on: name,
+// namespace, labels, spec and status all survive.
+func stripServerMetadata(obj any) (any, error) {
+	o, ok := obj.(client.Object)
+	if !ok {
+		return obj, nil
+	}
+	o.SetManagedFields(nil)
+	if ann := o.GetAnnotations(); ann != nil {
+		if _, found := ann[corev1.LastAppliedConfigAnnotation]; found {
+			// Copy before mutating: the object handed to a transform may be
+			// shared, and deleting from a map somebody else holds is a data
+			// race that only shows up under load.
+			trimmed := make(map[string]string, len(ann)-1)
+			for k, v := range ann {
+				if k != corev1.LastAppliedConfigAnnotation {
+					trimmed[k] = v
+				}
+			}
+			o.SetAnnotations(trimmed)
+		}
+	}
+	return obj, nil
+}
+
 type config struct {
 	addr           string
 	namespace      string
@@ -125,7 +155,54 @@ func run(ctx context.Context, cfg config) error {
 	if err != nil {
 		return fmt.Errorf("load cluster config: %w", err)
 	}
-	k8s, err := client.New(restCfg, client.Options{Scheme: scheme})
+	// Reads go through a cache with field indexes rather than straight to the
+	// API server. The console polls, so an uncached client turned every open
+	// tab into a steady stream of full-collection lists — the whole compliance
+	// collection every couple of seconds, to answer a question about one model.
+	// The cache also makes indexed lookups possible at all: the API server has
+	// no field selectors for custom resources, so narrowing has to happen here.
+	informers, err := cache.New(restCfg, cache.Options{
+		Scheme: scheme,
+		// Managed fields are a rewrite history the API server keeps for
+		// server-side apply. Nothing here reads them, and on a compliance
+		// report -- which already carries every assessed control -- they are a
+		// large fraction of the object. Dropping them on the way into the cache
+		// is the difference between holding the cluster's metadata and holding
+		// its meaning.
+		DefaultTransform: stripServerMetadata,
+	})
+	if err != nil {
+		return fmt.Errorf("build cluster cache: %w", err)
+	}
+	if err := indexes.Register(ctx, informers); err != nil {
+		return err
+	}
+
+	cacheCtx, stopCache := context.WithCancel(ctx)
+	defer stopCache()
+	cacheErr := make(chan error, 1)
+	go func() { cacheErr <- informers.Start(cacheCtx) }()
+
+	// Serving before the cache has synced would answer the first requests from
+	// an empty store, which reads as "this cluster has no models" rather than
+	// as "ask again shortly".
+	syncCtx, cancelSync := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancelSync()
+	if !informers.WaitForCacheSync(syncCtx) {
+		return fmt.Errorf("the cluster cache did not sync within two minutes")
+	}
+	logger.Info("cluster cache synced")
+
+	k8s, err := client.New(restCfg, client.Options{
+		Scheme: scheme,
+		Cache: &client.CacheOptions{
+			Reader: informers,
+			// The audit chain is append-only and read rarely, and holding every
+			// record in memory to serve an occasional drawer is the wrong
+			// trade: these stay uncached and read through to the API server.
+			DisableFor: audit.UncachedTypes(),
+		},
+	})
 	if err != nil {
 		return fmt.Errorf("build cluster client: %w", err)
 	}

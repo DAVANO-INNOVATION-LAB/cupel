@@ -12,6 +12,7 @@ import (
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/indexes"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/naming"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/scanners"
 )
@@ -230,23 +231,30 @@ func (s *Server) handleFindings(w http.ResponseWriter, r *http.Request, sub auth
 		return
 	}
 
-	// Find the scans for this model version, then the reports for those scans.
+	// The scans for this model version, then the reports belonging to each --
+	// both through an index. Listing every scan and every report in the cluster
+	// to answer this made the cost of one model's findings grow with how much
+	// unrelated work the cluster had ever done.
 	var scans securityv1alpha1.ArtifactScanList
-	if err := s.k8s.List(r.Context(), &scans); err != nil {
+	if err := s.k8s.List(r.Context(), &scans,
+		client.MatchingFields{indexes.ByModel: indexes.ModelKey(model, version)}); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "cannot list scans"})
 		return
 	}
 	owned := map[string]string{} // scan name -> namespace
 	for _, sc := range scans.Items {
-		if sc.Spec.ModelName == model && sc.Spec.ModelVersion == version {
-			owned[sc.Name] = sc.Namespace
-		}
+		owned[sc.Name] = sc.Namespace
 	}
 
 	var reports securityv1alpha1.ArtifactScanReportList
-	if err := s.k8s.List(r.Context(), &reports); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "cannot list reports"})
-		return
+	for name := range owned {
+		var forScan securityv1alpha1.ArtifactScanReportList
+		if err := s.k8s.List(r.Context(), &forScan,
+			client.MatchingFields{indexes.ByScan: name}); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "cannot list reports"})
+			return
+		}
+		reports.Items = append(reports.Items, forScan.Items...)
 	}
 
 	var out []authz.FindingView
@@ -293,13 +301,11 @@ func (s *Server) handleFindings(w http.ResponseWriter, r *http.Request, sub auth
 // found here and that the detail is no longer held.
 func (s *Server) retainedSummary(ctx context.Context, sub authz.Subject, model, version string) (map[string]any, bool) {
 	var reports securityv1alpha1.ModelSecurityReportList
-	if err := s.k8s.List(ctx, &reports); err != nil {
+	if err := s.k8s.List(ctx, &reports,
+		client.MatchingFields{indexes.ByModel: indexes.ModelKey(model, version)}); err != nil {
 		return nil, false
 	}
 	for _, rep := range reports.Items {
-		if rep.Spec.ModelName != model || rep.Spec.ModelVersion != version {
-			continue
-		}
 		if !sub.CanSeeNamespace(rep.Namespace) {
 			continue
 		}

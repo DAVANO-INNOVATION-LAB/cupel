@@ -34,7 +34,7 @@ func resourceScheme(t *testing.T) *runtime.Scheme {
 // authorization logic can be exercised directly.
 func serverFor(t *testing.T, objs ...client.Object) *Server {
 	t.Helper()
-	c := fake.NewClientBuilder().WithScheme(resourceScheme(t)).WithObjects(objs...).Build()
+	c := indexedFake(fake.NewClientBuilder().WithScheme(resourceScheme(t))).WithObjects(objs...).Build()
 	return &Server{k8s: c, cfg: Config{Namespace: "cupel-system"}}
 }
 

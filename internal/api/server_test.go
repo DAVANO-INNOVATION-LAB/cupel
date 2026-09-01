@@ -15,6 +15,7 @@ import (
 
 	securityv1alpha1 "github.com/DAVANO-INNOVATION-LAB/cupel/api/v1alpha1"
 	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/authz"
+	"github.com/DAVANO-INNOVATION-LAB/cupel/internal/indexes"
 )
 
 func testScheme(t *testing.T) *runtime.Scheme {
@@ -38,7 +39,7 @@ func testServer(t *testing.T, objs ...runtime.Object) *Server {
 		t.Fatal(err)
 	}
 	return &Server{
-		k8s: fake.NewClientBuilder().WithScheme(testScheme(t)).WithRuntimeObjects(objs...).Build(),
+		k8s: indexedFake(fake.NewClientBuilder().WithScheme(testScheme(t))).WithRuntimeObjects(objs...).Build(),
 		cfg: Config{
 			Namespace: "cupel-system",
 			Bindings: authz.Bindings{
@@ -296,4 +297,15 @@ func TestShortSessionKeysAreRejected(t *testing.T) {
 	if _, err := newSessionCodec([]byte("tooshort"), time.Hour); err == nil {
 		t.Error("a short session key was accepted; forging a cookie would be feasible")
 	}
+}
+
+// indexedFake gives the fake client the same field indexes the server runs
+// against. Without them a handler's indexed query fails outright, and with
+// different ones the tests would pass against an index production does not
+// have -- so both come from one definition.
+func indexedFake(b *fake.ClientBuilder) *fake.ClientBuilder {
+	for _, d := range indexes.Definitions() {
+		b = b.WithIndex(d.Object, d.Field, d.Extract)
+	}
+	return b
 }
